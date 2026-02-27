@@ -1,0 +1,24 @@
+apropos recent linkedin posts, 
+
+""
+My numbers on functional illiteracy among adults in the U.S. in the last post are from the PIACC survey, and I defined the fraction of adults below Level 1 as being functionally illiterate. Here are some more facts, responding to DMs and questions:
+
+1. Yes, the U.S. is looking really bad at 28% functionally illiterate. But 22.5% of Germans, 31% of Spaniards and a staggering 53.4% of Chileans are functionally illiterate. The Nordics are doing much better, but still Finland and Sweden are running at around 12%.
+
+2. The U.S. has participated in 3 cycles--2012/14, 2017 and 2023--and the first and the third are 10 years apart. Conveniently, the age-splits are shown in 10 year bands, so (say) 25-34 year olds in 2013 will be 35-44 year olds in 2023, if net migration can be assumed away. I put together the picture for the U.S. and it is not good, with declines of 10-20 points in every 10 year block. For context, 225 is the upper end of PIACC Level 1, which is functionally illiterate and around 250 puts you squarely at PIACC Level 2, which is just about able to read and comprehend basic instructions. At this rate, by the time the current cohort hits their 40s, the average person will be close to functionally illiterate in the U.S.
+""
+
+
+So, some basic calculations:
+
+if you were college age in 1990, you were probably 40-45 in 2013, when PIACC did its first adult literacy tests. Then, in the data, the PIACC scores for 40-45 year olds is around 220. Which tells us that 0.15*X + 0.85*Y = 220, where X is the score for college goers and Y is the score for non college-goers.
+
+Now, if you fast forward to 2011, the people who were college age in 2011 are probably around 30-35 in 2023, and their PIACC scores are around 238. So that tell us that 0.5X1 + 0.5Y1 = 238, which at first looks like there has been some improvement, but you have to also account for the fact that scores fall with age, and if you calibrate that properly, you get back to around 220! So, now you have 0.5X1 + 0.5Y1 = 220 as well, which is bizarre and suggests massive declines in the actual gains from going to college.
+
+What is going on?
+
+Can someone look into downloading the PIACC data..... 
+
+shall we all write a joint blog for CGD on this topic? Did OECD literacy peak in 2015?
+
+Perhaps we can use an agentic workflow and see how that works....spring break project for those of us who are here? we can spend half a day on it....would be interesting to see. The more I dive into this, the weirder and weirder it gets.....

@@ -1,0 +1,54 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Quarto
+/_freeze/
+/.quarto/
+*_cache/
+*_files/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Data (large files — track specific datasets intentionally)
+data/*.csv
+data/*.dta
+data/*.rds
+data/*.RDS
+
+# Output (regenerable from scripts)
+output/
+
+# Secrets
+.env
+*.secret
+config.local.toml
+
+# Temp
+/tmp/
+*.tmp
