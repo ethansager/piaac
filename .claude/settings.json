@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/protect-files.sh"
+            "command": "bash /home/ethan/ra_work/piaac/.claude/hooks/protect-files.sh"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/log-reminder.py"
+            "command": "python3 /home/ethan/ra_work/piaac/.claude/hooks/log-reminder.py"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-compact.sh"
+            "command": "bash /home/ethan/ra_work/piaac/.claude/hooks/pre-compact.sh"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/notify.sh"
+            "command": "bash /home/ethan/ra_work/piaac/.claude/hooks/notify.sh"
           }
         ]
       }

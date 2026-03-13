@@ -22,3 +22,15 @@ Can someone look into downloading the PIACC data.....
 shall we all write a joint blog for CGD on this topic? Did OECD literacy peak in 2015?
 
 Perhaps we can use an agentic workflow and see how that works....spring break project for those of us who are here? we can spend half a day on it....would be interesting to see. The more I dive into this, the weirder and weirder it gets.....
+
+the mystery now has deepened further. Below, I am copying Chile's performance on the PISA, which tests 15 year olds. In the test, 1sd is around 100 points so Chile's increase from 2000 to 2009 is around 0.4sd, which is massive. 
+
+THEN
+
+Here are the Chilean 16-24 year olds in 2013 PIACC, basically verging on illiteracy. So, these must be people who are around 15 years old in 2009 and were doing really well in the PISA. For some reason, they left school and suddenly became functionally illiterate, despite having the best scores in PISA for a long time.
+
+Even worse, now if you look at the 25-34 year olds, who must have been around 15 in the 2000 and therefore did really badly in the PISA, it turns out that the are just as literate as the 16 year olds, despite the 16-year olds having great scores.
+
+FINALLY, here is 2023. 15 year olds in 2000 and now 35-44, and they have a score of 219, but the 15 year olds in 2009 are now in the 25-34 and they have precisely the same scores as the 25-34 year olds in 2013, despite having seen massive gains in PISA.
+
+WHAT is going on???? These guys are even more low-performing than the italian men....

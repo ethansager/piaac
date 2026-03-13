@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>initial-analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="2026-02-27_initial-analysis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/popper.min.js"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="2026-02-27_initial-analysis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="2026-02-27_initial-analysis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="2026-02-27_initial-analysis_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="2026-02-27_initial-analysis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="2026-02-27_initial-analysis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="2026-02-27_initial-analysis_files/libs/bootstrap/bootstrap-256ab1543dedf2f6f04e5c838dd442f2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="session-log-initial-piaac-analysis" class="level1">
+<h1>Session Log: Initial PIAAC Analysis</h1>
+<p><strong>Date:</strong> 2026-02-27 <strong>Goal:</strong> Build first-pass analysis pipeline for PIAAC score decline research</p>
+<hr>
+<section id="what-was-done" class="level2">
+<h2 class="anchored" data-anchor-id="what-was-done">What Was Done</h2>
+<p>Implemented four R scripts based on approved plan:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 68%">
+<col style="width: 6%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Script</th>
+<th>Output</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>01_load_clean.r</code></td>
+<td><code>02_output/piaac_clean.rds</code></td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td><code>02_cohort_analysis.r</code></td>
+<td><code>02_output/cohort_scores.rds</code>, <code>Figures/cohort_trends.pdf</code></td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td><code>03_illiteracy_rates.r</code></td>
+<td><code>02_output/illiteracy_rates.rds</code>, <code>Figures/illiteracy_rates.pdf</code></td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td><code>04_college_returns.r</code></td>
+<td><code>02_output/college_returns.rds</code>, <code>Figures/college_premium.pdf</code></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+<section id="data-notes" class="level2">
+<h2 class="anchored" data-anchor-id="data-notes">Data Notes</h2>
+<ul>
+<li><strong>58 SAV files</strong>: 34 round-1 countries (lowercase filenames), 24 round-2 countries (uppercase)</li>
+<li><strong>USA is round 2 only</strong> (no <code>prgusap1.sav</code> exists)</li>
+<li><strong>Round 2 education variable</strong> is <code>EDCAT7_TC1</code>, not <code>EDCAT7</code> — handled by rename in load script</li>
+<li><strong>AGE_R is 35.4% missing</strong> — birth cohort calculation has many NAs; cohort analysis falls back to using <code>AGEG10LFS</code> (0% missing) implicitly via the <code>cohort_decade</code> bins</li>
+<li><strong>GBR round 1</strong>: college_share = 0% — <code>EDCAT7</code> appears to be coded differently or all-zero; needs investigation</li>
+<li>Total: 351,096 rows, 35 countries, 2 rounds</li>
+</ul>
+<hr>
+</section>
+<section id="key-findings" class="level2">
+<h2 class="anchored" data-anchor-id="key-findings">Key Findings</h2>
+<section id="cohort-decline-script-02" class="level3">
+<h3 class="anchored" data-anchor-id="cohort-decline-script-02">Cohort Decline (Script 02)</h3>
+<ul>
+<li>12 countries appear in both rounds: BEL, CHL, CZE, ESP, FIN, GBR, IRL, ISR, ITA, LTU, POL, SVK</li>
+<li><strong>11/12 show score declines</strong> for same birth cohort across rounds</li>
+<li>Largest declines: POL (−33 pts), LTU (−29), SVK (−20), CZE (−16), ISR (−15)</li>
+<li>Only Finland improved (+6 pts)</li>
+<li>Interpretation caveat: “same birth decade” in cy1 vs cy2 means slightly different ages (4 yrs older), so some of this is aging; but the magnitudes (10–33 pts) are large</li>
+</ul>
+</section>
+<section id="illiteracy-rates-script-03-round-1-only" class="level3">
+<h3 class="anchored" data-anchor-id="illiteracy-rates-script-03-round-1-only">Illiteracy Rates (Script 03, Round 1 only)</h3>
+<ul>
+<li>Worst: ECU 71%, PER 70%, CHL 53%, MEX 51%, TUR 45%</li>
+<li>Best: JPN 4.6%, FIN 10%, SVK/CZE/NZL/NOR ~12%</li>
+<li>Sanity checks vs email benchmarks:
+<ul>
+<li>CHL: 52.6% (benchmark 53.4%) ✅</li>
+<li>ESP: 27.1% (benchmark 31%) — 3.9 pp off ✅</li>
+<li>FIN: 10.2% (benchmark 12%) ✅</li>
+<li>SWE: 13.2% (benchmark 12%) ✅</li>
+<li>DEU: 17.4% (benchmark 22.5%) — <strong>5.1 pp off</strong> ⚠️ (PV1-only vs all 10 PVs likely explains some; may also reflect different threshold interpretation)</li>
+</ul></li>
+</ul>
+</section>
+<section id="college-premium-script-04" class="level3">
+<h3 class="anchored" data-anchor-id="college-premium-script-04">College Premium (Script 04)</h3>
+<ul>
+<li>College premium is declining in most countries with both rounds</li>
+<li>Biggest declines: POL (−15 pts), SGP (−13), IRL (−9), ESP (−8), CAN (−6)</li>
+<li>Some countries increased: EST (+16), NZL (+10), FRA (+8), HUN (+8), JPN (+9)</li>
+<li>Email back-of-envelope (pooled across all countries, not USA-only):
+<ul>
+<li>cy1 birth cohort 1968–73: mean = 258, college share = 22% → <code>0.22X + 0.78Y = 258</code></li>
+<li>cy2 birth cohort 1982–87: mean = 259, college share = 38% → <code>0.38X + 0.62Y = 259</code></li>
+<li>Similar overall means despite higher college share in cy2 is consistent with the compression story</li>
+</ul></li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="open-questions-next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="open-questions-next-steps">Open Questions / Next Steps</h2>
+<ol type="1">
+<li><strong>GBR round 1 EDCAT7 = 0</strong> — investigate whether the variable is differently coded or missing for UK cy1</li>
+<li><strong>DEU illiteracy gap</strong> — 5.1 pp vs benchmark; rerun with all 10 PVs to check if it closes</li>
+<li><strong>AGE_R missingness</strong> — 35.4% missing; consider using <code>AGEG10LFS</code> midpoints for birth cohort instead of <code>AGE_R</code></li>
+<li><strong>USA cohort trend</strong> — USA only in cy2; need cy1 to show the 10–20 pt decline described in emails</li>
+<li><strong>Upgrade to all 10 PVs + BRR weights</strong> for publication-quality SEs</li>
+<li><strong>Blog post draft</strong> — findings are strong enough to start outlining</li>
+</ol>
+<hr>
+</section>
+<section id="methodological-simplifications-first-pass" class="level2">
+<h2 class="anchored" data-anchor-id="methodological-simplifications-first-pass">Methodological Simplifications (First Pass)</h2>
+<ul>
+<li>PV1 only (not all 10 plausible values)</li>
+<li>SPFWT0 only (no BRR/JK replicate weights → no SEs)</li>
+<li>Birth cohort = <code>survey_year - AGE_R</code> (many NAs due to AGE_R missingness)</li>
+<li>College = <code>EDCAT7 ≥ 6</code> (bachelor’s or higher)</li>
+<li>Illiteracy = <code>PVLIT1 ≤ 225</code> (Level 1 ceiling)</li>
+</ul>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

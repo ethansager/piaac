@@ -1,4 +1,5 @@
 # Session Log: Initial PIAAC Analysis
+
 **Date:** 2026-02-27
 **Goal:** Build first-pass analysis pipeline for PIAAC score decline research
 
@@ -8,12 +9,12 @@
 
 Implemented four R scripts based on approved plan:
 
-| Script | Output | Status |
-|--------|--------|--------|
-| `01_load_clean.r` | `02_output/piaac_clean.rds` | ✅ |
-| `02_cohort_analysis.r` | `02_output/cohort_scores.rds`, `Figures/cohort_trends.pdf` | ✅ |
-| `03_illiteracy_rates.r` | `02_output/illiteracy_rates.rds`, `Figures/illiteracy_rates.pdf` | ✅ |
-| `04_college_returns.r` | `02_output/college_returns.rds`, `Figures/college_premium.pdf` | ✅ |
+| Script                  | Output                                                           | Status |
+| ----------------------- | ---------------------------------------------------------------- | ------ |
+| `01_load_clean.r`       | `02_output/piaac_clean.rds`                                      | ✅     |
+| `02_cohort_analysis.r`  | `02_output/cohort_scores.rds`, `Figures/cohort_trends.pdf`       | ✅     |
+| `03_illiteracy_rates.r` | `02_output/illiteracy_rates.rds`, `Figures/illiteracy_rates.pdf` | ✅     |
+| `04_college_returns.r`  | `02_output/college_returns.rds`, `Figures/college_premium.pdf`   | ✅     |
 
 ---
 
@@ -31,6 +32,7 @@ Implemented four R scripts based on approved plan:
 ## Key Findings
 
 ### Cohort Decline (Script 02)
+
 - 12 countries appear in both rounds: BEL, CHL, CZE, ESP, FIN, GBR, IRL, ISR, ITA, LTU, POL, SVK
 - **11/12 show score declines** for same birth cohort across rounds
 - Largest declines: POL (−33 pts), LTU (−29), SVK (−20), CZE (−16), ISR (−15)
@@ -38,6 +40,7 @@ Implemented four R scripts based on approved plan:
 - Interpretation caveat: "same birth decade" in cy1 vs cy2 means slightly different ages (4 yrs older), so some of this is aging; but the magnitudes (10–33 pts) are large
 
 ### Illiteracy Rates (Script 03, Round 1 only)
+
 - Worst: ECU 71%, PER 70%, CHL 53%, MEX 51%, TUR 45%
 - Best: JPN 4.6%, FIN 10%, SVK/CZE/NZL/NOR ~12%
 - Sanity checks vs email benchmarks:
@@ -48,6 +51,7 @@ Implemented four R scripts based on approved plan:
   - DEU: 17.4% (benchmark 22.5%) — **5.1 pp off** ⚠️ (PV1-only vs all 10 PVs likely explains some; may also reflect different threshold interpretation)
 
 ### College Premium (Script 04)
+
 - College premium is declining in most countries with both rounds
 - Biggest declines: POL (−15 pts), SGP (−13), IRL (−9), ESP (−8), CAN (−6)
 - Some countries increased: EST (+16), NZL (+10), FRA (+8), HUN (+8), JPN (+9)
