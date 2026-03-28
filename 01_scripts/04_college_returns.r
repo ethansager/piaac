@@ -31,7 +31,7 @@ piaac_edu <- piaac |>
   filter(
     !is.na(PVLIT1), !is.na(EDCAT7), !is.na(SPFWT0),
     SPFWT0 > 0,
-    EDCAT7 >= 1, EDCAT7 <= 7      # valid codes only
+    EDCAT7 >= 1, EDCAT7 <= 7 # valid codes only
   ) |>
   mutate(college = as.integer(EDCAT7 >= 6))
 
@@ -72,7 +72,8 @@ college_share <- piaac_edu |>
     .groups       = "drop"
   ) |>
   left_join(mean_overall |> select(country, round, mean_overall),
-            by = c("country", "round"))
+    by = c("country", "round")
+  )
 
 cat("\nCollege share and overall mean by country × round:\n")
 print(college_share, n = Inf)
@@ -94,13 +95,19 @@ boe_cy1_share <- boe_cy1_data |>
     college_share = weighted.mean(college, SPFWT0, na.rm = TRUE) * 100,
     n_obs         = n()
   )
-cat(sprintf("  N = %s; college share = %.1f%%\n",
-            format(boe_cy1_share$n_obs, big.mark = ","), boe_cy1_share$college_share))
-cat(sprintf("  Mean lit (PV+BRR) = %.1f (SE = %.2f)\n",
-            boe_cy1_mean$mean, boe_cy1_mean$se))
-cat(sprintf("  Implied: %.0f%%*X + %.0f%%*Y = %.1f\n",
-            boe_cy1_share$college_share, 100 - boe_cy1_share$college_share,
-            boe_cy1_mean$mean))
+cat(sprintf(
+  "  N = %s; college share = %.1f%%\n",
+  format(boe_cy1_share$n_obs, big.mark = ","), boe_cy1_share$college_share
+))
+cat(sprintf(
+  "  Mean lit (PV+BRR) = %.1f (SE = %.2f)\n",
+  boe_cy1_mean$mean, boe_cy1_mean$se
+))
+cat(sprintf(
+  "  Implied: %.0f%%*X + %.0f%%*Y = %.1f\n",
+  boe_cy1_share$college_share, 100 - boe_cy1_share$college_share,
+  boe_cy1_mean$mean
+))
 
 cat("\ncy2 (round 2): birth cohort 1988-1993 (~30-35 yr olds in cy2 ~2023)\n")
 boe_cy2_data <- piaac_edu |>
@@ -111,26 +118,36 @@ boe_cy2_share <- boe_cy2_data |>
     college_share = weighted.mean(college, SPFWT0, na.rm = TRUE) * 100,
     n_obs         = n()
   )
-cat(sprintf("  N = %s; college share = %.1f%%\n",
-            format(boe_cy2_share$n_obs, big.mark = ","), boe_cy2_share$college_share))
-cat(sprintf("  Mean lit (PV+BRR) = %.1f (SE = %.2f)\n",
-            boe_cy2_mean$mean, boe_cy2_mean$se))
-cat(sprintf("  Implied: %.0f%%*X1 + %.0f%%*Y1 = %.1f\n",
-            boe_cy2_share$college_share, 100 - boe_cy2_share$college_share,
-            boe_cy2_mean$mean))
+cat(sprintf(
+  "  N = %s; college share = %.1f%%\n",
+  format(boe_cy2_share$n_obs, big.mark = ","), boe_cy2_share$college_share
+))
+cat(sprintf(
+  "  Mean lit (PV+BRR) = %.1f (SE = %.2f)\n",
+  boe_cy2_mean$mean, boe_cy2_mean$se
+))
+cat(sprintf(
+  "  Implied: %.0f%%*X1 + %.0f%%*Y1 = %.1f\n",
+  boe_cy2_share$college_share, 100 - boe_cy2_share$college_share,
+  boe_cy2_mean$mean
+))
 
 # ---- Countries in both rounds ----
-# Require non-NA premium in both rounds (GBR excluded: EDCAT7 data issue in cy1)
+# Require non-NA premium in BOTH round 1 AND round 2.
+# Using any(round == 1) & any(round == 2) instead of n() == 2 so that
+# countries with 3 rounds (e.g. USA: 2012, 2023, 2017) are included.
 both_rounds <- college_premium |>
   filter(!is.na(premium)) |>
   distinct(country, round) |>
   group_by(country) |>
-  filter(n() == 2) |>
+  filter(any(round == 1) & any(round == 2)) |>
   pull(country) |>
   unique()
 
-cat(sprintf("\n%d countries in both rounds: %s\n",
-            length(both_rounds), paste(sort(both_rounds), collapse = ", ")))
+cat(sprintf(
+  "\n%d countries in both rounds: %s\n",
+  length(both_rounds), paste(sort(both_rounds), collapse = ", ")
+))
 
 # ---- Helper: build college premium plot ----
 make_premium_plot <- function(plot_df, title_extra = "") {
@@ -147,8 +164,10 @@ make_premium_plot <- function(plot_df, title_extra = "") {
   ggplot(plot_df, aes(x = country, y = premium, fill = round_label)) +
     geom_col(position = position_dodge(width = 0.75), width = 0.7) +
     geom_errorbar(
-      aes(ymin = premium - 1.96 * se,
-          ymax = premium + 1.96 * se),
+      aes(
+        ymin = premium - 1.96 * se,
+        ymax = premium + 1.96 * se
+      ),
       position = position_dodge(width = 0.75),
       width = 0.35, color = "#222222", linewidth = 0.5
     ) +
@@ -158,14 +177,18 @@ make_premium_plot <- function(plot_df, title_extra = "") {
       name   = "Round"
     ) +
     labs(
-      title    = paste0("College Literacy Premium: cy1 vs cy2", title_extra),
-      subtitle = paste0("Premium = mean(bachelor\u2019s+) \u2013 mean(non-college). ",
-                        "Countries in both rounds only.\nError bars = ±1.96 SE (PV+BRR)."),
-      x        = NULL,
-      y        = "Score premium (PV+BRR)",
-      caption  = paste0("Source: PIAAC cy1 & cy2 PUF. PV+BRR SEs (Rubin\u2019s rules), SPFWT0 weights. ",
-                        "cy1 field dates: 2012 (most OECD), 2014 (CHL, ISR, SGP, etc.). cy2 = Cycle 2 (2023).\n",
-                        "College = EDCAT7 \u2265 6 (bachelor\u2019s or higher).")
+      title = paste0("College Literacy Premium: cy1 vs cy2", title_extra),
+      subtitle = paste0(
+        "Premium = mean(bachelor\u2019s+) \u2013 mean(non-college). ",
+        "Countries in both rounds only.\nError bars = ±1.96 SE (PV+BRR)."
+      ),
+      x = NULL,
+      y = "Score premium (PV+BRR)",
+      caption = paste0(
+        "Source: PIAAC cy1 & cy2 PUF. PV+BRR SEs (Rubin\u2019s rules), SPFWT0 weights. ",
+        "cy1 field dates: 2012 (most OECD), 2014 (CHL, ISR, SGP, etc.). cy2 = Cycle 2 (2023).\n",
+        "College = EDCAT7 \u2265 6 (bachelor\u2019s or higher)."
+      )
     ) +
     theme_minimal(base_size = 12) +
     theme(

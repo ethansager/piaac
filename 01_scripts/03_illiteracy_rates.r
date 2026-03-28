@@ -30,11 +30,13 @@ dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 piaac <- readRDS(file.path(out_dir, "piaac_clean.rds"))
 
 # ---- Filter: round 1 (more countries), valid observations ----
-r1 <- filter(piaac, round == 1, !is.na(PVLIT1), !is.na(SPFWT0), SPFWT0 > 0)
+r1 <- filter(piaac, round == 2, !is.na(PVLIT1), !is.na(SPFWT0), SPFWT0 > 0)
 
-cat(sprintf("Round 1: %s obs across %d countries\n",
-            format(nrow(r1), big.mark = ","),
-            n_distinct(r1$country)))
+cat(sprintf(
+  "Round 1: %s obs across %d countries\n",
+  format(nrow(r1), big.mark = ","),
+  n_distinct(r1$country)
+))
 
 # ---- Per-PV binary indicators: illit_pv_k = 1 if PVLIT_k ≤ 225 ----
 # Must derive the indicator per PV before averaging — do NOT average scores first.
@@ -48,7 +50,7 @@ cat("Computing illiteracy rates (PV+BRR)...\n")
 illiteracy_rates <- pv_group_mean(r1, illit_pv_cols, "country", "SPFWT0", BRR_WTS) |>
   mutate(
     illiteracy_rate = mean * 100,
-    se_rate         = se   * 100
+    se_rate         = se * 100
   ) |>
   arrange(illiteracy_rate)
 
@@ -63,14 +65,14 @@ saveRDS(illiteracy_rates, file.path(out_dir, "illiteracy_rates.rds"))
 
 cat("\nFunctional illiteracy rates (%, PVLIT_k ≤ 225, PV+BRR):\n")
 print(illiteracy_rates |> arrange(desc(illiteracy_rate)) |>
-      select(country, illiteracy_rate, se_rate, mean_lit, n), n = Inf)
+  select(country, illiteracy_rate, se_rate, mean_lit, n), n = Inf)
 
 # ---- Sanity check vs email benchmarks ----
 # From emails.txt: US ~28%, DEU ~22.5%, ESP ~31%, CHL ~53.4%, FIN/SWE ~12%
 # Note: USA not in round 1; DEU/ESP/CHL/FIN/SWE should match
 benchmarks <- tibble::tibble(
   country   = c("DEU", "ESP", "CHL", "FIN", "SWE"),
-  benchmark = c( 22.5,  31.0,  53.4,  12.0,  12.0)
+  benchmark = c(22.5, 31.0, 53.4, 12.0, 12.0)
 )
 
 check <- left_join(benchmarks, illiteracy_rates, by = "country") |>
@@ -104,26 +106,35 @@ make_illiteracy_plot <- function(plot_df, title_extra = "", country_order = NULL
   ggplot(plot_df, aes(x = country_fac, y = illiteracy_rate, fill = bar_color)) +
     geom_col(width = 0.75) +
     geom_errorbar(
-      aes(ymin = illiteracy_rate - 1.96 * se_rate,
-          ymax = illiteracy_rate + 1.96 * se_rate),
+      aes(
+        ymin = illiteracy_rate - 1.96 * se_rate,
+        ymax = illiteracy_rate + 1.96 * se_rate
+      ),
       width = 0.35, color = "#222222", linewidth = 0.5
     ) +
     geom_text(aes(label = sprintf("%.0f%%", illiteracy_rate)),
-              hjust = -0.15, size = 3.0, color = "#222222") +
+      hjust = -0.15, size = 3.0, color = "#222222"
+    ) +
     coord_flip(clip = "off") +
     scale_fill_identity() +
-    scale_y_continuous(limits = c(0, y_max * 1.15),
-                       labels = scales::label_number(suffix = "%")) +
+    scale_y_continuous(
+      limits = c(0, y_max * 1.15),
+      labels = scales::label_number(suffix = "%")
+    ) +
     labs(
-      title    = paste0("Functional Illiteracy Across PIAAC Countries: cy1", title_extra),
-      subtitle = paste0("Share of adults scoring \u2264225 (Level 1 ceiling). ",
-                        "Error bars = ±1.96 SE (PV+BRR).\n",
-                        "Gold = highlighted countries (USA not in round 1)."),
-      x        = NULL,
-      y        = "Functional illiteracy rate",
-      caption  = paste0("Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
-                        "(Rubin's rules), SPFWT0 weights.\n",
-                        "\u2264225 = at or below Level 1 (functionally illiterate).")
+      title = paste0("Functional Illiteracy Across PIAAC Countries: cy1", title_extra),
+      subtitle = paste0(
+        "Share of adults scoring \u2264225 (Level 1 ceiling). ",
+        "Error bars = ±1.96 SE (PV+BRR).\n",
+        "Gold = highlighted countries (USA not in round 1)."
+      ),
+      x = NULL,
+      y = "Functional illiteracy rate",
+      caption = paste0(
+        "Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
+        "(Rubin's rules), SPFWT0 weights.\n",
+        "\u2264225 = at or below Level 1 (functionally illiterate)."
+      )
     ) +
     theme_minimal(base_size = 12) +
     theme(
@@ -159,7 +170,7 @@ illiteracy_gender <- pv_group_mean(
 ) |>
   mutate(
     illiteracy_rate = mean * 100,
-    se_rate         = se   * 100,
+    se_rate         = se * 100,
     gender_label    = if_else(GENDER_R == 1, "Male", "Female")
   ) |>
   arrange(country, GENDER_R)
@@ -172,8 +183,10 @@ p_gender <- illiteracy_gender |>
   ggplot(aes(x = country_fac, y = illiteracy_rate, fill = gender_label)) +
   geom_col(position = position_dodge(width = 0.75), width = 0.7) +
   geom_errorbar(
-    aes(ymin = illiteracy_rate - 1.96 * se_rate,
-        ymax = illiteracy_rate + 1.96 * se_rate),
+    aes(
+      ymin = illiteracy_rate - 1.96 * se_rate,
+      ymax = illiteracy_rate + 1.96 * se_rate
+    ),
     position = position_dodge(width = 0.75),
     width = 0.35, color = "#222222", linewidth = 0.4
   ) +
@@ -184,13 +197,17 @@ p_gender <- illiteracy_gender |>
   ) +
   scale_y_continuous(labels = scales::label_number(suffix = "%")) +
   labs(
-    title    = "Functional Illiteracy by Gender: cy1",
-    subtitle = paste0("Share of adults scoring \u2264225 (Level 1 ceiling). ",
-                      "Error bars = \u00b11.96 SE (PV+BRR)."),
-    x        = NULL,
-    y        = "Functional illiteracy rate",
-    caption  = paste0("Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
-                      "(Rubin\u2019s rules), SPFWT0 weights.")
+    title = "Functional Illiteracy by Gender: cy1",
+    subtitle = paste0(
+      "Share of adults scoring \u2264225 (Level 1 ceiling). ",
+      "Error bars = \u00b11.96 SE (PV+BRR)."
+    ),
+    x = NULL,
+    y = "Functional illiteracy rate",
+    caption = paste0(
+      "Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
+      "(Rubin\u2019s rules), SPFWT0 weights."
+    )
   ) +
   theme_minimal(base_size = 11) +
   theme(
@@ -215,8 +232,8 @@ if ("NATIVESPEAKER" %in% names(r1)) {
     r1_ns, illit_pv_cols, c("country", "NATIVESPEAKER"), "SPFWT0", BRR_WTS
   ) |>
     mutate(
-      illiteracy_rate  = mean * 100,
-      se_rate          = se   * 100,
+      illiteracy_rate = mean * 100,
+      se_rate = se * 100,
       nativespeaker_label = if_else(NATIVESPEAKER == 1, "Native speaker", "Non-native speaker")
     ) |>
     arrange(country, NATIVESPEAKER)
@@ -246,7 +263,7 @@ if ("IMGEN" %in% names(r1)) {
   ) |>
     mutate(
       illiteracy_rate = mean * 100,
-      se_rate         = se   * 100
+      se_rate         = se * 100
     ) |>
     arrange(country, IMGEN)
 

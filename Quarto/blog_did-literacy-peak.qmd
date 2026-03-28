@@ -19,6 +19,16 @@ format:
 bibliography: references.bib
 ---
 
+
+### LEAD WITH BIG NUMBERS
+
+### THE PUZZLE DISCONNECT BETWEEN PISA AND PIAAC
+
+### Various people have looked and its not a measurement issue. The PISA gains were real, but they did not translate into adult skills.
+
+### MATT SAID we looked at the comments as we all know the first stage is denial and then fear and then anger and then bargaining and then acceptance. We are somewhere between denial and fear right now.
+
+
 ## The Puzzle
 
 Here is a fact that should be unsettling. In the United States, roughly 18 percent of adults are functionally illiterate—unable to perform basic reading tasks like understanding a medication label or following simple written instructions. That number comes from the OECD's Programme for the International Assessment of Adult Competencies (PIAAC), which defines functional illiteracy as scoring at or below Level 1, a threshold of 225 points on a 500-point scale.

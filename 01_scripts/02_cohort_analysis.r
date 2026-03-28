@@ -60,19 +60,26 @@ both_rounds <- cohort_scores |>
   pull(country) |>
   unique()
 
-cat(sprintf("\n%d countries in both rounds: %s\n",
-            length(both_rounds), paste(sort(both_rounds), collapse = ", ")))
+cat(sprintf(
+  "\n%d countries in both rounds: %s\n",
+  length(both_rounds), paste(sort(both_rounds), collapse = ", ")
+))
 
 # ---- Helper: build cohort trend plot ----
 make_cohort_plot <- function(plot_data, subtitle_extra = "") {
   round_palette <- c("1" = "#012169", "2" = "#f2a900")
 
-  ggplot(plot_data,
-         aes(x = cohort_decade, y = mean_lit,
-             color = factor(round), fill = factor(round),
-             group = factor(round))) +
+  ggplot(
+    plot_data,
+    aes(
+      x = cohort_decade, y = mean_lit,
+      color = factor(round), fill = factor(round),
+      group = factor(round)
+    )
+  ) +
     geom_ribbon(aes(ymin = mean_lit - 1.96 * se, ymax = mean_lit + 1.96 * se),
-                alpha = 0.15, color = NA) +
+      alpha = 0.15, color = NA
+    ) +
     geom_line(linewidth = 0.8) +
     geom_point(size = 1.5) +
     geom_hline(yintercept = 225, linetype = "dashed", color = "red", alpha = 0.6) +
@@ -92,15 +99,19 @@ make_cohort_plot <- function(plot_data, subtitle_extra = "") {
       labels = c("1940s", "1960s", "1980s", "2000s")
     ) +
     labs(
-      title    = "PIAAC Literacy by Birth Cohort: cy1 vs cy2",
-      subtitle = paste0("Dashed red = Level 1 ceiling (225). ",
-                        "Same birth decade is ~9-11 yrs older in cy2.",
-                        if (nchar(subtitle_extra) > 0) paste0("\n", subtitle_extra) else ""),
-      x        = "Birth decade",
-      y        = "Mean literacy score (PV+BRR)",
-      caption  = paste0("Source: PIAAC cy1 & cy2 PUF. Mean of 10 PVs, BRR SEs (Rubin's rules), ",
-                        "SPFWT0 weights.\nShading = \u00b11.96 SE. Cells with n<50 suppressed. ",
-                        "cy1 field dates: 2012 (most OECD), 2014 (CHL, ISR, SGP, etc.), 2017 (GRC, KAZ, SVN). cy2 = Cycle 2 (2023).")
+      title = "PIAAC Literacy by Birth Cohort: cy1 vs cy2",
+      subtitle = paste0(
+        "Dashed red = Level 1 ceiling (225). ",
+        "Same birth decade is ~9-11 yrs older in cy2.",
+        if (nchar(subtitle_extra) > 0) paste0("\n", subtitle_extra) else ""
+      ),
+      x = "Birth decade",
+      y = "Mean literacy score (PV+BRR)",
+      caption = paste0(
+        "Source: PIAAC cy1 & cy2 PUF. Mean of 10 PVs, BRR SEs (Rubin's rules), ",
+        "SPFWT0 weights.\nShading = \u00b11.96 SE. Cells with n<50 suppressed. ",
+        "cy1 field dates: 2012 (most OECD), 2014 (CHL, ISR, SGP, etc.), 2017 (GRC, KAZ, SVN). cy2 = Cycle 2 (2023)."
+      )
     ) +
     theme_minimal(base_size = 10) +
     theme(
@@ -129,8 +140,10 @@ cat(sprintf("Saved figure: %s\n", fig_path))
 cohort_change <- cohort_scores |>
   filter(country %in% both_rounds, n_obs >= 50) |>
   select(country, cohort_decade, round, mean_lit, se) |>
-  pivot_wider(names_from = round, values_from = c(mean_lit, se),
-              names_sep = "_r") |>
+  pivot_wider(
+    names_from = round, values_from = c(mean_lit, se),
+    names_sep = "_r"
+  ) |>
   filter(!is.na(mean_lit_r1), !is.na(mean_lit_r2)) |>
   mutate(
     change    = mean_lit_r2 - mean_lit_r1,
@@ -160,12 +173,16 @@ country_bar <- country_summary |>
     bar_color   = if_else(mean_change < 0, "#b91c1c", "#15803d")
   )
 
-p_change_bar <- ggplot(country_bar,
-                       aes(x = country_fac, y = mean_change, fill = bar_color)) +
+p_change_bar <- ggplot(
+  country_bar,
+  aes(x = country_fac, y = mean_change, fill = bar_color)
+) +
   geom_col(width = 0.75) +
   geom_text(
-    aes(label  = sprintf("%.0f", mean_change),
-        hjust  = if_else(mean_change < 0, 1.15, -0.15)),
+    aes(
+      label = sprintf("%.0f", mean_change),
+      hjust = if_else(mean_change < 0, 1.15, -0.15)
+    ),
     size = 3.0, color = "#222222"
   ) +
   geom_hline(yintercept = 0, color = "#222222", linewidth = 0.5) +
@@ -176,20 +193,24 @@ p_change_bar <- ggplot(country_bar,
     labels = scales::label_number(suffix = " pts")
   ) +
   labs(
-    title    = "Mean Cohort Score Change: Cycle 2 vs. Cycle 1",
-    subtitle = paste0("Average change across matched birth-decade cohorts within each country.\n",
-                      "Negative = cohort scored lower in Cycle 2 (2023) than in Cycle 1 (2012/14)."),
-    x        = NULL,
-    y        = "Mean cohort score change (cy2 \u2212 cy1)",
-    caption  = paste0("Source: PIAAC cy1 & cy2 PUF. Average across all matched birth decades per country.\n",
-                      "PV+BRR estimation, SPFWT0 weights. Same birth decade is ~9\u201311 years older in cy2.")
+    title = "Mean Cohort Score Change: Cycle 2 vs. Cycle 1",
+    subtitle = paste0(
+      "Average change across matched birth-decade cohorts within each country.\n",
+      "Negative = cohort scored lower in Cycle 2 (2023) than in Cycle 1 (2012/14)."
+    ),
+    x = NULL,
+    y = "Mean cohort score change (cy2 \u2212 cy1)",
+    caption = paste0(
+      "Source: PIAAC cy1 & cy2 PUF. Average across all matched birth decades per country.\n",
+      "PV+BRR estimation, SPFWT0 weights. Same birth decade is ~9\u201311 years older in cy2."
+    )
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.title    = element_text(face = "bold", color = "#012169", size = 13),
+    plot.title = element_text(face = "bold", color = "#012169", size = 13),
     plot.subtitle = element_text(size = 10),
     legend.position = "none",
-    plot.margin   = margin(5, 50, 5, 5)
+    plot.margin = margin(5, 50, 5, 5)
   )
 
 ggsave(file.path(fig_dir, "cohort_change_bar.pdf"), p_change_bar, width = 10, height = 8)
@@ -226,3 +247,27 @@ ggsave(file.path(fig_dir, "cohort_trends_gender.png"), p_gender, width = 14, hei
 cat(sprintf("Saved figure: %s\n", fig_path_gender))
 
 cat("\nDone: cohort analysis complete.\n")
+
+
+
+# TAKE PISA AT 15
+
+# THINK ABOUT HOW WE CAN DRAW THE DROP
+
+# HOW DO WE INTERPRATE THIS THE DIFF BASED OFF OTHER COMPARISONS
+
+
+
+table(piaac$country)
+
+chile <- piaac %>%
+  filter(AGE_R == 29 & country == "CHL")
+
+mean(chile$NATIVESPEAKER, na.rm = TRUE)
+
+table(chile$round, chile$EDCAT7)
+
+
+chile %>%
+  group_by(round) %>%
+  summarise(frac_below = sum(PVLIT10 <= 225, na.rm = TRUE) / n())
