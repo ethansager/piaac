@@ -1,0 +1,2 @@
+countries,round1_min_year,round1_max_year,round2_year,pop_r1,lit_pop_r1,num_pop_r1,lit_rate_r1,num_rate_r1,pop_r2,lit_pop_r2,num_pop_r2,lit_rate_r2,num_rate_r2,lit_increase_countries,lit_decrease_countries,num_increase_countries,num_decrease_countries,sample
+23,2012,2014,2023,626031683.6881397,109215926.5358786,150519656.35217378,0.174457506515413,0.24043456629130575,630072857.6766876,160341363.4039445,171709066.960436,0.254480670688121,0.2725225580952511,22,1,15,8,Countries with an earlier PIAAC round and a 2023 round

@@ -1,0 +1,2 @@
+countries,round1_min_year,round1_max_year,round2_min_year,round2_max_year,pop_r1,lit_pop_r1,num_pop_r1,lit_rate_r1,num_rate_r1,pop_r2,lit_pop_r2,num_pop_r2,lit_rate_r2,num_rate_r2,lit_increase_countries,lit_decrease_countries,num_increase_countries,num_decrease_countries,sample
+24,2012,2014,2014,2023,631679024.6881397,110067184.41643101,151318765.84414968,0.1742454318010183,0.23955008782958379,636043354.6766876,162039251.33928543,173032635.33102027,0.254761330572588,0.27204534731594815,23,1,16,8,All countries with both round 1 and round 2 data
