@@ -27,9 +27,14 @@ BRR_WTS <- paste0("SPFWT", 1:80)
 # @param group_vars Character vector of grouping variable names
 # @param final_wt   Name of the final (full-sample) weight column
 # @param brr_wts    Character vector of BRR replicate weight column names (length R)
+# @param fay_k      Fay's BRR coefficient (default 0 = standard BRR).
+#                   Use 0.5 for PISA (Fay's method). The replicate variance is
+#                   divided by (1 - fay_k)^2 per OECD Technical Reports.
 # @return Tibble with one row per group: mean, se, V_W, V_B, n
-pv_group_mean <- function(data, pv_cols, group_vars, final_wt, brr_wts) {
-  M <- length(pv_cols)
+pv_group_mean <- function(data, pv_cols, group_vars, final_wt, brr_wts,
+                          fay_k = 0) {
+  M        <- length(pv_cols)
+  fay_corr <- (1 - fay_k)^2   # Fay correction: V_W_k /= (1-k)^2
 
   data |>
     group_by(across(all_of(group_vars))) |>
@@ -46,16 +51,20 @@ pv_group_mean <- function(data, pv_cols, group_vars, final_wt, brr_wts) {
       V_W_k   <- numeric(M)
 
       for (k in seq_len(M)) {
-        x <- grp[[pv_cols[k]]]
+        x     <- grp[[pv_cols[k]]]
+        valid <- !is.na(x)
 
-        # Point estimate: weighted mean under final weight
-        theta_k[k] <- sum(x * w0) / w0_sum
+        # Point estimate: weighted mean over non-NA observations
+        w0_v  <- w0[valid]
+        x_v   <- x[valid]
+        theta_k[k] <- sum(x_v * w0_v) / sum(w0_v)
 
-        # BRR replicates: vectorized over R replicates
-        # theta_r[r] = sum(x * W_brr[,r]) / sum(W_brr[,r])
-        theta_r <- colSums(x * W_brr) / W_brr_colsums  # length R
+        # BRR replicates: restrict to non-NA rows for each replicate
+        W_v    <- W_brr[valid, , drop = FALSE]
+        theta_r <- colSums(x_v * W_v) / colSums(W_v)  # length R
 
-        V_W_k[k] <- mean((theta_r - theta_k[k])^2)
+        # Fay-corrected replicate variance: divide by (1 - k)^2
+        V_W_k[k] <- mean((theta_r - theta_k[k])^2) / fay_corr
       }
 
       # Rubin's rules
