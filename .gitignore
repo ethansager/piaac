@@ -52,3 +52,6 @@ config.local.toml
 # Temp
 /tmp/
 *.tmp
+git add .gitignore
+0_data/
+02_output/*.rds
