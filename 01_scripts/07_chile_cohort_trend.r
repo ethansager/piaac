@@ -6,8 +6,12 @@
 # Outputs:
 #   02_output/chile_cohort_scores.csv
 #   02_output/chile_cohort_change.csv
+#   02_output/chile_cohort_pl1_shares.csv
+#   02_output/chile_cohort_pl1_change.csv
 #   Figures/chile_cohort_trend.png
 #   Figures/chile_cohort_trend.pdf
+#   Figures/chile_cohort_pl1_trend.png
+#   Figures/chile_cohort_pl1_trend.pdf
 #   Figures/chile_cohort_arrows.png
 #   Figures/chile_cohort_arrows.pdf
 
@@ -182,6 +186,149 @@ p
 
 ggsave(file.path(fig_dir, "chile_cohort_trend.pdf"), p, width = 9, height = 6)
 ggsave(file.path(fig_dir, "chile_cohort_trend.png"), p, width = 9, height = 6, dpi = 160)
+
+# ---- Alternative y-axis: PL1 share by birth cohort ----
+pl1_pvs <- paste0("PL1_PV", 1:10)
+for (i in seq_along(LIT_PVS)) {
+  chile_coh[[pl1_pvs[i]]] <- as.integer(chile_coh[[LIT_PVS[i]]] <= 225)
+}
+
+cohort_pl1 <- pv_group_mean(
+  chile_coh,
+  pl1_pvs,
+  c("cohort_decade", "round", "survey_year"),
+  "SPFWT0",
+  BRR_WTS
+) |>
+  rename(pl1_share = mean, n_obs = n) |>
+  arrange(cohort_decade, round)
+
+cohort_pl1_change <- cohort_pl1 |>
+  select(cohort_decade, round, pl1_share, se, n_obs) |>
+  pivot_wider(
+    names_from = round,
+    values_from = c(pl1_share, se, n_obs),
+    names_sep = "_r"
+  ) |>
+  filter(!is.na(pl1_share_r1), !is.na(pl1_share_r2)) |>
+  mutate(
+    change = pl1_share_r2 - pl1_share_r1,
+    se_change = sqrt(se_r1^2 + se_r2^2),
+    direction = if_else(change > 0, "increase", "decrease")
+  ) |>
+  arrange(cohort_decade)
+
+write_csv(cohort_pl1, file.path(out_dir, "chile_cohort_pl1_shares.csv"))
+write_csv(cohort_pl1_change, file.path(out_dir, "chile_cohort_pl1_change.csv"))
+
+cat("\nChile matched birth-decade PL1 share changes:\n")
+print(cohort_pl1_change |>
+  transmute(
+    cohort = paste0(cohort_decade, "s"),
+    share_2014 = scales::percent(pl1_share_r1, accuracy = 0.1),
+    share_2023 = scales::percent(pl1_share_r2, accuracy = 0.1),
+    change_pp = round(change * 100, 1),
+    direction
+  ))
+
+plot_pl1_data <- cohort_pl1 |>
+  filter(cohort_decade %in% cohort_pl1_change$cohort_decade, n_obs >= 50) |>
+  mutate(
+    round_label = if_else(round == 1, "2014", "2023"),
+    ymin = pmax(0, pl1_share - 1.96 * se),
+    ymax = pmin(1, pl1_share + 1.96 * se)
+  )
+
+p_pl1 <- ggplot(
+  plot_pl1_data,
+  aes(
+    x = cohort_decade,
+    y = pl1_share,
+    color = round_label,
+    fill = round_label,
+    group = round_label
+  )
+) +
+  geom_ribbon(
+    aes(ymin = ymin, ymax = ymax),
+    alpha = 0.14,
+    color = NA
+  ) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.6) +
+  scale_color_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_fill_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_x_continuous(
+    breaks = sort(unique(plot_pl1_data$cohort_decade)),
+    labels = function(x) paste0(x, "s")
+  ) +
+  scale_y_continuous(labels = label_percent(accuracy = 1)) +
+  labs(
+    title = "Chile: PL1-VOTS Likelihood Rises Across Birth Cohorts Over Time",
+    x = "(\u2190 Older)       Birth decade      (Younger \u2192)",
+    y = "Share at Level 1 or below",
+    caption = "PL1-VOTS = scoring at or below Level 1 in literacy (<= 225)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1f4e79"),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "bottom",
+    panel.grid = element_blank()
+  )
+
+p_pl1
+
+ggsave(file.path(fig_dir, "chile_cohort_pl1_trend.pdf"), p_pl1, width = 9, height = 6)
+ggsave(file.path(fig_dir, "chile_cohort_pl1_trend.png"), p_pl1, width = 9, height = 6, dpi = 160)
+
+
+# Just 2014 Values --------------------------------------------------------
+
+p_pl1 <- 
+  plot_pl1_data %>% 
+  filter(survey_year==2014) %>% 
+  ggplot(
+  aes(
+    x = cohort_decade,
+    y = pl1_share,
+    color = round_label,
+    fill = round_label,
+    group = round_label
+  )
+) +
+  geom_ribbon(
+    aes(ymin = ymin, ymax = ymax),
+    alpha = 0.14,
+    color = NA
+  ) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.6) +
+  scale_color_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_fill_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_x_continuous(
+    breaks = sort(unique(plot_pl1_data$cohort_decade)),
+    labels = function(x) paste0(x, "s")
+  ) +
+  scale_y_continuous(labels = label_percent(accuracy = 1)) +
+  labs(
+    title = "Chile: PL1-VOTS Likelihood Rises Across Birth Cohorts Over Time",
+    x = "(\u2190 Older)       Birth decade      (Younger \u2192)",
+    y = "Share at Level 1 or below",
+    caption = "PL1-VOTS = scoring at or below Level 1 in literacy (<= 225)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1f4e79"),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "bottom",
+    panel.grid = element_blank()
+  )
+
+p_pl1
+
+ggsave(file.path(fig_dir, "chile_cohort_pl1_trend_r1only.pdf"), p_pl1, width = 9, height = 6)
+ggsave(file.path(fig_dir, "chile_cohort_pl1_trend_r1only.png"), p_pl1, width = 9, height = 6, dpi = 160)
 
 # ---- Alternative plot: cohort-to-cohort arrows ----
 # arrow_df <- cohort_change |>
