@@ -1,19 +1,19 @@
 #!/usr/bin/env Rscript
 
-# 07_chile_cohort_trend.r
-# Build a Chile-only cohort trend figure for slide 12.
+# 07_USA_cohort_trend.r
+# Build a USA-only cohort trend figure for slide 12.
 #
 # Outputs:
-#   02_output/chile_cohort_scores.csv
-#   02_output/chile_cohort_change.csv
-#   02_output/chile_cohort_pl1_shares.csv
-#   02_output/chile_cohort_pl1_change.csv
-#   Figures/chile_cohort_trend.png
-#   Figures/chile_cohort_trend.pdf
-#   Figures/chile_cohort_pl1_trend.png
-#   Figures/chile_cohort_pl1_trend.pdf
-#   Figures/chile_cohort_arrows.png
-#   Figures/chile_cohort_arrows.pdf
+#   02_output/USA_cohort_scores.csv
+#   02_output/USA_cohort_change.csv
+#   02_output/USA_cohort_pl1_shares.csv
+#   02_output/USA_cohort_pl1_change.csv
+#   Figures/USA_cohort_trend.png
+#   Figures/USA_cohort_trend.pdf
+#   Figures/USA_cohort_pl1_trend.png
+#   Figures/USA_cohort_pl1_trend.pdf
+#   Figures/USA_cohort_arrows.png
+#   Figures/USA_cohort_arrows.pdf
 
 set.seed(20260411)
 
@@ -45,23 +45,23 @@ if (is.na(data_dir)) {
 
 source(file.path(piaac_root, "01_scripts", "00_helpers.r"))
 
-# ---- Load Chile files ----
-chile_files <- tibble(
-  file = c("prgchlp1.sav", "PRGCHLP2.sav"),
+# ---- Load USA files ----
+USA_files <- tibble(
+  file = c("prgusap1_2012.sav", "PRGUSAP2.sav"),
   round = c(1L, 2L),
-  survey_year = c(2014L, 2023L)
+  survey_year = c(2012L, 2023L)
 )
 
-required_paths <- file.path(data_dir, chile_files$file)
+required_paths <- file.path(data_dir, USA_files$file)
 if (!all(file.exists(required_paths))) {
   missing_paths <- required_paths[!file.exists(required_paths)]
   stop(
-    "Missing one or more required Chile files:\n",
+    "Missing one or more required USA files:\n",
     paste(missing_paths, collapse = "\n")
   )
 }
 
-load_chile_file <- function(file, round, survey_year) {
+load_USA_file <- function(file, round, survey_year) {
   d <- read_sav(
     file.path(data_dir, file),
     col_select = any_of(c(
@@ -71,21 +71,21 @@ load_chile_file <- function(file, round, survey_year) {
       LIT_PVS
     ))
   )
-
+  
   if (!"AGEG10LFS" %in% names(d) && "AGEG10LFS_T" %in% names(d)) {
     d <- rename(d, AGEG10LFS = AGEG10LFS_T)
   }
   if (!"EDCAT7" %in% names(d) && "EDCAT7_TC1" %in% names(d)) {
     d <- rename(d, EDCAT7 = EDCAT7_TC1)
   }
-
+  
   age_r_suppressed <- !"AGE_R" %in% names(d) ||
     (all(is.na(d$AGE_R)) && "AGEG10LFS" %in% names(d))
   if (age_r_suppressed && "AGEG10LFS" %in% names(d)) {
     age_midpoints <- c(20L, 30L, 40L, 50L, 60L)
     d$AGE_R <- age_midpoints[as.integer(d$AGEG10LFS)]
   }
-
+  
   d |>
     mutate(
       round = round,
@@ -95,10 +95,10 @@ load_chile_file <- function(file, round, survey_year) {
     )
 }
 
-chile <- pmap_dfr(chile_files, load_chile_file) |>
+USA <- pmap_dfr(USA_files, load_USA_file) |>
   mutate(across(where(haven::is.labelled), as.numeric))
 
-chile_coh <- chile |>
+USA_coh <- USA |>
   filter(
     !is.na(PVLIT1), !is.na(SPFWT0), SPFWT0 > 0,
     cohort_decade >= 1930, cohort_decade <= 2000
@@ -106,7 +106,7 @@ chile_coh <- chile |>
 
 # ---- Cohort scores ----
 cohort_scores <- pv_group_mean(
-  chile_coh,
+  USA_coh,
   LIT_PVS,
   c("cohort_decade", "round", "survey_year"),
   "SPFWT0",
@@ -130,23 +130,23 @@ cohort_change <- cohort_scores |>
   ) |>
   arrange(cohort_decade)
 
-write_csv(cohort_scores, file.path(out_dir, "chile_cohort_scores.csv"))
-write_csv(cohort_change, file.path(out_dir, "chile_cohort_change.csv"))
+write_csv(cohort_scores, file.path(out_dir, "USA_cohort_scores.csv"))
+write_csv(cohort_change, file.path(out_dir, "USA_cohort_change.csv"))
 
-cat("\nChile matched birth-decade cohort changes:\n")
+cat("\nUSA matched birth-decade cohort changes:\n")
 print(cohort_change |>
-  transmute(
-    cohort = paste0(cohort_decade, "s"),
-    score_2014 = round(mean_lit_r1, 1),
-    score_2023 = round(mean_lit_r2, 1),
-    change = round(change, 1),
-    direction
-  ))
+        transmute(
+          cohort = paste0(cohort_decade, "s"),
+          score_2012 = round(mean_lit_r1, 1),
+          score_2023 = round(mean_lit_r2, 1),
+          change = round(change, 1),
+          direction
+        ))
 
 # ---- Plot ----
 plot_data <- cohort_scores |>
   filter(cohort_decade %in% cohort_change$cohort_decade, n_obs >= 50) |>
-  mutate(round_label = if_else(round == 1, "2014", "2023"))
+  mutate(round_label = if_else(round == 1, "2012", "2023"))
 
 p <- ggplot(
   plot_data,
@@ -166,14 +166,14 @@ p <- ggplot(
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
   geom_hline(yintercept = 225, linetype = "dashed", color = "#b91c1c", linewidth = 0.8) +
-  scale_color_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
   ) +
   labs(
-    title = "Chile: The Same Birth Cohorts Score Lower in 2023 Than in 2014",
+    title = "USA: The Same Birth Cohorts Score Lower in 2023 Than in 2012",
     x = "Birth decade",
     y = "Mean literacy score",
     caption = "Dashed line = Level 1 ceiling (225)"
@@ -188,17 +188,17 @@ p <- ggplot(
 
 p
 
-ggsave(file.path(fig_dir, "chile_cohort_trend.pdf"), p, width = 9, height = 6)
-ggsave(file.path(fig_dir, "chile_cohort_trend.png"), p, width = 9, height = 6, dpi = 160)
+ggsave(file.path(fig_dir, "USA_cohort_trend.pdf"), p, width = 9, height = 6)
+ggsave(file.path(fig_dir, "USA_cohort_trend.png"), p, width = 9, height = 6, dpi = 160)
 
 # ---- Alternative y-axis: PL1 share by birth cohort ----
 pl1_pvs <- paste0("PL1_PV", 1:10)
 for (i in seq_along(LIT_PVS)) {
-  chile_coh[[pl1_pvs[i]]] <- as.integer(chile_coh[[LIT_PVS[i]]] <= 225)
+  USA_coh[[pl1_pvs[i]]] <- as.integer(USA_coh[[LIT_PVS[i]]] <= 225)
 }
 
 cohort_pl1 <- pv_group_mean(
-  chile_coh,
+  USA_coh,
   pl1_pvs,
   c("cohort_decade", "round", "survey_year"),
   "SPFWT0",
@@ -222,23 +222,23 @@ cohort_pl1_change <- cohort_pl1 |>
   ) |>
   arrange(cohort_decade)
 
-write_csv(cohort_pl1, file.path(out_dir, "chile_cohort_pl1_shares.csv"))
-write_csv(cohort_pl1_change, file.path(out_dir, "chile_cohort_pl1_change.csv"))
+write_csv(cohort_pl1, file.path(out_dir, "USA_cohort_pl1_shares.csv"))
+write_csv(cohort_pl1_change, file.path(out_dir, "USA_cohort_pl1_change.csv"))
 
-cat("\nChile matched birth-decade PL1 share changes:\n")
+cat("\nUSA matched birth-decade PL1 share changes:\n")
 print(cohort_pl1_change |>
-  transmute(
-    cohort = paste0(cohort_decade, "s"),
-    share_2014 = scales::percent(pl1_share_r1, accuracy = 0.1),
-    share_2023 = scales::percent(pl1_share_r2, accuracy = 0.1),
-    change_pp = round(change * 100, 1),
-    direction
-  ))
+        transmute(
+          cohort = paste0(cohort_decade, "s"),
+          share_2012 = scales::percent(pl1_share_r1, accuracy = 0.1),
+          share_2023 = scales::percent(pl1_share_r2, accuracy = 0.1),
+          change_pp = round(change * 100, 1),
+          direction
+        ))
 
 plot_pl1_data <- cohort_pl1 |>
   filter(cohort_decade %in% cohort_pl1_change$cohort_decade, n_obs >= 50) |>
   mutate(
-    round_label = if_else(round == 1, "2014", "2023"),
+    round_label = if_else(round == 1, "2012", "2023"),
     ymin = pmax(0, pl1_share - 1.96 * se),
     ymax = pmin(1, pl1_share + 1.96 * se)
   )
@@ -260,15 +260,15 @@ p_pl1 <- ggplot(
   ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
-  scale_color_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_pl1_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
   ) +
   scale_y_continuous(labels = label_percent(accuracy = 1)) +
   labs(
-    title = "Chile: PL1-VOTS Likelihood Rises Across Birth Cohorts Over Time",
+    title = "USA: PL1-VOTS Likelihood Rises Across Birth Cohorts Over Time",
     x = "(\u2190 Older)       Birth decade      (Younger \u2192)",
     y = "Share at Level 1 or below",
     caption = "PL1-VOTS = scoring at or below Level 1 in literacy (<= 225)"
@@ -283,24 +283,24 @@ p_pl1 <- ggplot(
 
 p_pl1
 
-ggsave(file.path(fig_dir, "chile_cohort_pl1_trend.pdf"), p_pl1, width = 9, height = 6)
-ggsave(file.path(fig_dir, "chile_cohort_pl1_trend.png"), p_pl1, width = 9, height = 6, dpi = 160)
+ggsave(file.path(fig_dir, "USA_cohort_pl1_trend.pdf"), p_pl1, width = 9, height = 6)
+ggsave(file.path(fig_dir, "USA_cohort_pl1_trend.png"), p_pl1, width = 9, height = 6, dpi = 160)
 
 
-# Just 2014 Values --------------------------------------------------------
+# Just 2012 Values --------------------------------------------------------
 
 p_pl1 <- 
   plot_pl1_data %>% 
-  filter(survey_year==2014) %>% 
+  filter(survey_year==2012) %>% 
   ggplot(
-  aes(
-    x = cohort_decade,
-    y = pl1_share,
-    color = round_label,
-    fill = round_label,
-    group = round_label
-  )
-) +
+    aes(
+      x = cohort_decade,
+      y = pl1_share,
+      color = round_label,
+      fill = round_label,
+      group = round_label
+    )
+  ) +
   geom_ribbon(
     aes(ymin = ymin, ymax = ymax),
     alpha = 0.14,
@@ -308,15 +308,15 @@ p_pl1 <-
   ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
-  scale_color_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2014" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_pl1_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
   ) +
   scale_y_continuous(labels = label_percent(accuracy = 1)) +
   labs(
-    title = "Chile: PL1-VOTS Likelihood By Birth Decade in 2014",
+    title = "USA: PL1-VOTS Likelihood By Birth Decade in 2012",
     x = "(\u2190 Older)       Birth decade      (Younger \u2192)",
     y = "Share at Level 1 or below",
     caption = "PL1-VOTS = scoring at or below Level 1 in literacy (<= 225)"
@@ -331,12 +331,12 @@ p_pl1 <-
 
 p_pl1
 
-ggsave(file.path(fig_dir, "chile_cohort_pl1_trend_r1only.pdf"), p_pl1, width = 9, height = 6)
-ggsave(file.path(fig_dir, "chile_cohort_pl1_trend_r1only.png"), p_pl1, width = 9, height = 6, dpi = 160)
+ggsave(file.path(fig_dir, "USA_cohort_pl1_trend_r1only.pdf"), p_pl1, width = 9, height = 6)
+ggsave(file.path(fig_dir, "USA_cohort_pl1_trend_r1only.png"), p_pl1, width = 9, height = 6, dpi = 160)
 
-# ---- Bachelor’s+ share by birth decade (console only) ----
+# ---- Tertiary share by birth decade (console only) ----
 
-college_share <- chile |>
+college_share <- USA |>
   filter(
     !is.na(EDCAT7), EDCAT7 >= 1, EDCAT7 <= 7,
     !is.na(SPFWT0), SPFWT0 > 0,
@@ -362,30 +362,30 @@ college_share_matched <- college_share |>
   mutate(change_pp = (college_share_r2 - college_share_r1) * 100) |>
   arrange(cohort_decade)
 
-cat("\nChile bachelor’s+ share by birth decade:\n")
+cat("\nUSA bachelor’s+ share by birth decade:\n")
 print(college_share |>
-  transmute(
-    cohort = paste0(cohort_decade, "s"),
-    year = survey_year,
-    share_bachelors_plus = scales::percent(college_share, accuracy = 0.1),
-    n_obs
-  ), n = Inf)
+        transmute(
+          cohort = paste0(cohort_decade, "s"),
+          year = survey_year,
+          share_bachelors_plus = scales::percent(college_share, accuracy = 0.1),
+          n_obs
+        ), n = Inf)
 
-cat("\nChile matched birth-decade bachelor’s+ share changes:\n")
+cat("\nUSA matched birth-decade bachelor’s+ share changes:\n")
 print(college_share_matched |>
-  transmute(
-    cohort = paste0(cohort_decade, "s"),
-    share_2014 = scales::percent(college_share_r1, accuracy = 0.1),
-    share_2023 = scales::percent(college_share_r2, accuracy = 0.1),
-    change_pp = round(change_pp, 1)
-  ), n = Inf)
+        transmute(
+          cohort = paste0(cohort_decade, "s"),
+          share_2012 = scales::percent(college_share_r1, accuracy = 0.1),
+          share_2023 = scales::percent(college_share_r2, accuracy = 0.1),
+          change_pp = round(change_pp, 1)
+        ), n = Inf)
 
 # ---- Alternative plot: cohort-to-cohort arrows ----
 # arrow_df <- cohort_change |>
 #   transmute(
 #     cohort_decade = cohort_decade,
 #     cohort_label = paste0(cohort_decade, "s"),
-#     score_2014 = mean_lit_r1,
+#     score_2012 = mean_lit_r1,
 #     score_2023 = mean_lit_r2,
 #     change = change,
 #     direction = direction
@@ -395,7 +395,7 @@ print(college_share_matched |>
 #       cohort_label,
 #       levels = paste0(sort(unique(cohort_decade)), "s")
 #     ),
-#     label_2014 = sprintf("%.0f", score_2014),
+#     label_2012 = sprintf("%.0f", score_2012),
 #     label_2023 = sprintf("%.0f", score_2023)
 #   )
 # 
@@ -403,7 +403,7 @@ print(college_share_matched |>
 #   geom_vline(xintercept = 225, linetype = "dashed", color = "#b91c1c", linewidth = 0.8) +
 #   geom_segment(
 #     aes(
-#       x = score_2014,
+#       x = score_2012,
 #       xend = score_2023,
 #       yend = cohort_label,
 #       color = direction
@@ -411,10 +411,10 @@ print(college_share_matched |>
 #     linewidth = 1.2,
 #     arrow = arrow(length = grid::unit(0.16, "inches"), type = "closed")
 #   ) +
-#   geom_point(aes(x = score_2014), color = "#1f4e79", size = 3) +
+#   geom_point(aes(x = score_2012), color = "#1f4e79", size = 3) +
 #   geom_point(aes(x = score_2023), color = "#d97706", size = 3) +
 #   geom_text(
-#     aes(x = score_2014, label = label_2014),
+#     aes(x = score_2012, label = label_2012),
 #     nudge_y = 0.22,
 #     hjust = 1.15,
 #     size = 3.6,
@@ -432,12 +432,12 @@ print(college_share_matched |>
 #     name = NULL
 #   ) +
 #   labs(
-#     title = "Chile: Most Birth Cohorts Move Downward from 2014 to 2023",
-#     subtitle = "Each arrow follows the same birth decade from its 2014 score to its 2023 score.",
+#     title = "USA: Most Birth Cohorts Move Downward from 2012 to 2023",
+#     subtitle = "Each arrow follows the same birth decade from its 2012 score to its 2023 score.",
 #     x = "Mean literacy score",
 #     y = "Birth decade",
 #     caption = paste0(
-#       "Source: PIAAC Chile public-use files (2014 and 2023). ",
+#       "Source: PIAAC USA public-use files (2012 and 2023). ",
 #       "Means use all 10 plausible values with BRR standard errors. ",
 #       "Dashed line = Level 1 ceiling (225)."
 #     )
@@ -451,13 +451,13 @@ print(college_share_matched |>
 # 
 # p_arrow
 # 
-# ggsave(file.path(fig_dir, "chile_cohort_arrows.pdf"), p_arrow, width = 9, height = 6)
-# ggsave(file.path(fig_dir, "chile_cohort_arrows.png"), p_arrow, width = 9, height = 6, dpi = 160)
+# ggsave(file.path(fig_dir, "USA_cohort_arrows.pdf"), p_arrow, width = 9, height = 6)
+# ggsave(file.path(fig_dir, "USA_cohort_arrows.png"), p_arrow, width = 9, height = 6, dpi = 160)
 # 
 # cat("\nSaved:\n")
-# cat("  ", file.path(out_dir, "chile_cohort_scores.csv"), "\n")
-# cat("  ", file.path(out_dir, "chile_cohort_change.csv"), "\n")
-# cat("  ", file.path(fig_dir, "chile_cohort_trend.pdf"), "\n")
-# cat("  ", file.path(fig_dir, "chile_cohort_trend.png"), "\n")
-# cat("  ", file.path(fig_dir, "chile_cohort_arrows.pdf"), "\n")
-# cat("  ", file.path(fig_dir, "chile_cohort_arrows.png"), "\n")
+# cat("  ", file.path(out_dir, "USA_cohort_scores.csv"), "\n")
+# cat("  ", file.path(out_dir, "USA_cohort_change.csv"), "\n")
+# cat("  ", file.path(fig_dir, "USA_cohort_trend.pdf"), "\n")
+# cat("  ", file.path(fig_dir, "USA_cohort_trend.png"), "\n")
+# cat("  ", file.path(fig_dir, "USA_cohort_arrows.pdf"), "\n")
+# cat("  ", file.path(fig_dir, "USA_cohort_arrows.png"), "\n")
