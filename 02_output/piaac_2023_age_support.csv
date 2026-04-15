@@ -1,0 +1,24 @@
+country,n_ages,age_support
+CAN,5,band-midpoints only
+DEU,5,band-midpoints only
+DNK,5,band-midpoints only
+EST,5,band-midpoints only
+FRA,5,band-midpoints only
+HUN,5,band-midpoints only
+JPN,5,band-midpoints only
+KOR,5,band-midpoints only
+NZL,5,band-midpoints only
+SGP,5,band-midpoints only
+USA,5,band-midpoints only
+BEL,50,exact ages
+CHL,50,exact ages
+CZE,50,exact ages
+ESP,50,exact ages
+FIN,50,exact ages
+GBR,50,exact ages
+IRL,50,exact ages
+ISR,50,exact ages
+ITA,50,exact ages
+LTU,50,exact ages
+POL,50,exact ages
+SVK,50,exact ages

@@ -180,3 +180,42 @@ Eastern European countries (POL, LTU, SVK) show sharp skill declines in young ad
 ---
 **Context compaction (auto) at 23:48**
 Check git log and quality_reports/plans/ for current state.
+
+---
+**Context compaction (auto) at 11:14**
+Check git log and quality_reports/plans/ for current state.
+
+---
+**Context compaction (auto) at 15:57**
+Check git log and quality_reports/plans/ for current state.
+
+---
+
+## 2026-04-14 Session: FT Article Comment Scraping + Sentiment Analysis
+
+### Goal
+Scrape and run sentiment analysis on comments from FT article on literacy/PIAAC
+(https://www.ft.com/content/e2ddd496-4f07-4dc8-a47c-314354da8d46).
+
+### Script
+`explorations/ft_comments/scrape_sentiment.r` — outputs to `explorations/ft_comments/output/`
+
+### Key findings (technical)
+- FT uses Coral comment platform; comments loaded via GET GraphQL API (not in HTML)
+- Endpoint: `https://ft.coral.coralproject.net/api/graphql`
+- Persisted query ID: `fe6db435838489b39afeb993214af799`
+- No auth cookie needed — but unauthenticated access is capped at **164 comments** (445 total; remainder requires FT subscription)
+- AFINN lexicon downloaded directly from GitHub (textdata package wouldn't install)
+
+### Sentiment results (164 comments)
+- Mean AFINN score: **0.09** (near-neutral)
+- Breakdown: 65% Neutral, 18% Positive, 17% Negative
+- Tone is measured/analytical — typical for FT opinion readership
+
+---
+**Context compaction (auto) at 23:43**
+Check git log and quality_reports/plans/ for current state.
+
+---
+**Context compaction (auto) at 23:44**
+Check git log and quality_reports/plans/ for current state.

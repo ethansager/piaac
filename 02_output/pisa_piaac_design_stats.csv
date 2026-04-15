@@ -1,0 +1,13 @@
+design,subject,pearson_r,n_countries,label
+Naive cross-section,Literacy,0.5366049514279497,23,"r = 0.54
+n = 23"
+Naive cross-section,Numeracy,0.6960338950541765,23,"r = 0.70
+n = 23"
+Age-restricted (16-24),Literacy,0.6701484227546938,23,"r = 0.67
+n = 23"
+Age-restricted (16-24),Numeracy,0.7921991670296954,23,"r = 0.79
+n = 23"
+Short-run (~20),Literacy,0.64510050115779,23,"r = 0.65
+n = 23"
+Short-run (~20),Numeracy,0.7727582295499485,23,"r = 0.77
+n = 23"

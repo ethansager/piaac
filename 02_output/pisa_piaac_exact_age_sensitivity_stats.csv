@@ -1,0 +1,5 @@
+design,subject,pearson_r,spearman_r,n_countries,label
+Exact-age 20,Literacy,0.7225411356774409,0.7762237762237764,12,"r = 0.72
+n = 12"
+Exact-age 20,Numeracy,0.7295457240903948,0.6573426573426574,12,"r = 0.73
+n = 12"
