@@ -380,6 +380,9 @@ print(college_share_matched |>
     change_pp = round(change_pp, 1)
   ), n = Inf)
 
+write_csv(college_share, file.path(out_dir, "chile_college_share_by_cohort.csv"))
+write_csv(college_share_matched, file.path(out_dir, "chile_college_share_matched.csv"))
+
 # ---- Alternative plot: cohort-to-cohort arrows ----
 # arrow_df <- cohort_change |>
 #   transmute(
