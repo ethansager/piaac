@@ -2,7 +2,7 @@
 
 # 08_agegroup_pl1_dumbbell.r
 # Build a presentation-friendly pooled age-group PL1 chart for the
-# 23 participants observed in both Cycle 1 and Cycle 2 (2023).
+# countries observed in both Cycle 1 and Cycle 2 (2023).
 #
 # Outputs:
 #   02_output/agegroup_pl1_overlap_pooled.csv
@@ -22,6 +22,8 @@ piaac_root <- root_candidates[dir.exists(file.path(root_candidates, "01_scripts"
 if (is.na(piaac_root)) {
   stop("Could not locate the PIAAC analysis root. Checked: . and ./piaac")
 }
+
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
 
 out_dir <- file.path(piaac_root, "02_output")
 fig_dir <- file.path(piaac_root, "Figures")
@@ -49,15 +51,16 @@ cy1_year_lookup <- c(
 )
 
 cy2_year_lookup <- c(
-  AUT = 2014L,
+  AUT = 2023L,
   BEL = 2023L, CAN = 2023L, CHL = 2023L, CZE = 2023L, DEU = 2023L, DNK = 2023L,
   ESP = 2023L, EST = 2023L, FIN = 2023L, FRA = 2023L, GBR = 2023L, HUN = 2023L,
   IRL = 2023L, ISR = 2023L, ITA = 2023L, JPN = 2023L, KOR = 2023L, LTU = 2023L,
-  NZL = 2023L, POL = 2023L, SGP = 2023L, SVK = 2023L, USA = 2023L
+  NLD = 2023L, NOR = 2023L, NZL = 2023L, POL = 2023L, SGP = 2023L, SVK = 2023L,
+  SWE = 2023L, USA = 2023L
 )
 
 round_override <- list(
-  USA = c(`2012` = 1L, `2023` = 2L, `2017` = 3L)
+  USA = c(`2012` = 1L, `2014` = 1L, `2023` = 2L, `2017` = 3L)
 )
 
 age_labels <- c(
@@ -89,7 +92,8 @@ parse_filename <- function(filepath) {
   }
 
   round_num <- if (country %in% names(round_override)) {
-    unname(round_override[[country]][as.character(survey_year)])
+    override <- unname(round_override[[country]][as.character(survey_year)])
+    ifelse(is.na(override), raw_round, override)
   } else {
     raw_round
   }
@@ -107,7 +111,8 @@ all_files <- list.files(
   pattern = "\\.sav$",
   ignore.case = TRUE,
   full.names = TRUE
-)
+) |>
+  prefer_us_combined_round1()
 
 meta <- bind_rows(lapply(all_files, parse_filename))
 
@@ -127,6 +132,7 @@ load_one <- function(path, country, round, survey_year) {
     path,
     col_select = any_of(c(
       "SPFWT0", "AGEG10LFS", "AGEG10LFS_T",
+      "DOORSTEP",
       paste0("PVLIT", 1:10),
       paste0("PVNUM", 1:10)
     ))
@@ -137,6 +143,7 @@ load_one <- function(path, country, round, survey_year) {
   }
 
   d |>
+    exclude_doorstep() |>
     mutate(
       country = country,
       round = round,
@@ -271,7 +278,6 @@ p <- ggplot() +
     limits = c(10, 38)
   ) +
   labs(
-    title = "Even Within Age Groups, PL1-VOTS Rise from Cycle 1 to Cycle 2",
     x = "Share at Level 1 or below",
     y = NULL,
     caption = "Point estimates use SPFWT0 weights and average across 10 plausible values."

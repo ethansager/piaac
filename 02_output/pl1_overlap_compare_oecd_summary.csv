@@ -1,0 +1,3 @@
+domain,figure_countries,matched_rows,sign_mismatches,magnitude_flags_abs_gt_1pp,mean_abs_change_diff_pp,max_abs_change_diff_pp
+literacy,24,24,0,0,0.16200962072242212,0.8560808225299379
+numeracy,24,24,0,1,0.15906495965531675,1.3167549026502092

@@ -83,6 +83,7 @@ piaac_years_all <- c(2012L, 2014L, 2017L, 2023L)
 
 message("Loading PIAAC data...")
 piaac_raw <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep() |>
   filter(if_all(all_of(c(LIT_PVS, NUM_PVS)), \(x) !is.na(x)))
 
 message("Computing PIAAC cohort means (all countries, all cohorts)...")

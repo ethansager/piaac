@@ -40,15 +40,16 @@ CY1_YEAR_LOOKUP <- c(
 )
 
 CY2_YEAR_LOOKUP <- c(
-  AUT = 2014L,
+  AUT=2023L,
   BEL=2023L, CAN=2023L, CHL=2023L, CZE=2023L, DEU=2023L, DNK=2023L,
   ESP=2023L, EST=2023L, FIN=2023L, FRA=2023L, GBR=2023L, HUN=2023L,
   IRL=2023L, ISR=2023L, ITA=2023L, JPN=2023L, KOR=2023L, LTU=2023L,
-  NZL=2023L, POL=2023L, SGP=2023L, SVK=2023L, USA=2023L
+  NLD=2023L, NOR=2023L, NZL=2023L, POL=2023L, SGP=2023L, SVK=2023L,
+  SWE=2023L, USA=2023L
 )
 
 ROUND_OVERRIDE <- list(
-  USA = c(`2012` = 1L, `2023` = 2L, `2017` = 3L)
+  USA = c(`2012` = 1L, `2014` = 1L, `2023` = 2L, `2017` = 3L)
 )
 
 parse_filename <- function(f) {
@@ -89,7 +90,7 @@ find_data_dir <- function() {
   existing[1]
 }
 
-KEY_VARS <- c(LIT_PVS, BRR_WTS, "AGE_R", "AGEG10LFS", "AGEG10LFS_T", "SPFWT0", "GENDER_R")
+KEY_VARS <- c(LIT_PVS, BRR_WTS, "AGE_R", "AGEG10LFS", "AGEG10LFS_T", "SPFWT0", "GENDER_R", "DOORSTEP")
 
 load_one_file <- function(filepath) {
   meta <- parse_filename(filepath)
@@ -137,7 +138,7 @@ load_or_build_piaac <- function() {
     piaac_rds <- tryCatch(readRDS(piaac_path), error = function(e) NULL)
     if (!is.null(piaac_rds)) {
       cat("Loaded clean dataset from 02_output/piaac_clean.rds\n")
-      return(piaac_rds)
+      return(exclude_doorstep(piaac_rds))
     }
     cat("02_output/piaac_clean.rds is not readable here; rebuilding from raw files...\n")
   } else {
@@ -150,7 +151,8 @@ load_or_build_piaac <- function() {
     pattern = "\\.sav$",
     ignore.case = TRUE,
     full.names = TRUE
-  )
+  ) |>
+    prefer_us_combined_round1()
 
   if (length(sav_files) == 0) {
     stop(sprintf("No .sav files found in %s", data_dir), call. = FALSE)
@@ -162,7 +164,7 @@ load_or_build_piaac <- function() {
 
   saveRDS(piaac, piaac_path)
   cat(sprintf("Saved rebuilt clean dataset to %s\n", piaac_path))
-  piaac
+  exclude_doorstep(piaac)
 }
 
 # ---- Load ----

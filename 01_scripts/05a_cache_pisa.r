@@ -3,7 +3,8 @@
 # (CNT, PVs, weights), and save as compressed RDS.
 #
 # Run once per new year added. Subsequent scripts load from cache in seconds.
-# Cache lives in 00_data/pisa/cache/.
+# Cache lives in 0_data/pisa/cache/ or 00_data/pisa/cache/, depending on the
+# local raw-data folder.
 #
 # Supported cycles:
 #   2000 -- intstud_read_v3.txt + intstud_math_v3.txt (separate domain files)
@@ -21,7 +22,11 @@ library(tidyverse)
 library(haven)
 library(here)
 
-pisa_dir  <- here("00_data/pisa")
+pisa_dir_candidates <- c(here("0_data/pisa"), here("00_data/pisa"))
+pisa_dir <- pisa_dir_candidates[dir.exists(pisa_dir_candidates)][1]
+if (is.na(pisa_dir)) {
+  stop("Could not find PISA raw-data directory. Checked: 0_data/pisa and 00_data/pisa")
+}
 cache_dir <- file.path(pisa_dir, "cache")
 docs_dir  <- here("docs")
 

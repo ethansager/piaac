@@ -29,6 +29,8 @@ if (is.na(piaac_root)) {
   stop("Could not locate the PIAAC analysis root. Checked: . and ./piaac")
 }
 
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
+
 out_dir <- file.path(piaac_root, "02_output")
 fig_dir <- file.path(piaac_root, "Figures")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -68,6 +70,7 @@ load_chile_file <- function(file, round, survey_year) {
       "SPFWT0", BRR_WTS,
       "AGE_R", "AGEG10LFS", "AGEG10LFS_T",
       "EDCAT7", "EDCAT7_TC1",
+      "DOORSTEP",
       LIT_PVS
     ))
   )
@@ -87,6 +90,7 @@ load_chile_file <- function(file, round, survey_year) {
   }
 
   d |>
+    exclude_doorstep() |>
     mutate(
       round = round,
       survey_year = survey_year,

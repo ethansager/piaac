@@ -29,6 +29,8 @@ if (is.na(piaac_root)) {
   stop("Could not locate the PIAAC analysis root. Checked: . and ./piaac")
 }
 
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
+
 out_dir <- file.path(piaac_root, "02_output")
 fig_dir <- file.path(piaac_root, "Figures")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -43,13 +45,22 @@ if (is.na(data_dir)) {
   stop("Could not find raw PIAAC data directory. Checked: 0_data and 00_data")
 }
 
-source(file.path(piaac_root, "01_scripts", "00_helpers.r"))
-
 # ---- Load USA files ----
+usa_cycle1_file <- if (file.exists(file.path(data_dir, "prgusap1_2012_2014.sav"))) {
+  "prgusap1_2012_2014.sav"
+} else {
+  "prgusap1_2012.sav"
+}
+usa_cycle1_year <- if (identical(usa_cycle1_file, "prgusap1_2012_2014.sav")) 2014L else 2012L
+usa_cycle1_label <- if (identical(usa_cycle1_file, "prgusap1_2012_2014.sav")) "2012/14" else "2012"
+
+round_labels <- c(`1` = usa_cycle1_label, `2` = "2023")
+round_colors <- setNames(c("#1f4e79", "#d97706"), unname(round_labels))
+
 USA_files <- tibble(
-  file = c("prgusap1_2012.sav", "PRGUSAP2.sav"),
+  file = c(usa_cycle1_file, "PRGUSAP2.sav"),
   round = c(1L, 2L),
-  survey_year = c(2012L, 2023L)
+  survey_year = c(usa_cycle1_year, 2023L)
 )
 
 required_paths <- file.path(data_dir, USA_files$file)
@@ -68,6 +79,7 @@ load_USA_file <- function(file, round, survey_year) {
       "SPFWT0", BRR_WTS,
       "AGE_R", "AGEG10LFS", "AGEG10LFS_T",
       "EDCAT7", "EDCAT7_TC1",
+      "DOORSTEP",
       LIT_PVS
     ))
   )
@@ -87,6 +99,7 @@ load_USA_file <- function(file, round, survey_year) {
   }
   
   d |>
+    exclude_doorstep() |>
     mutate(
       round = round,
       survey_year = survey_year,
@@ -137,7 +150,7 @@ cat("\nUSA matched birth-decade cohort changes:\n")
 print(cohort_change |>
         transmute(
           cohort = paste0(cohort_decade, "s"),
-          score_2012 = round(mean_lit_r1, 1),
+          score_cycle1 = round(mean_lit_r1, 1),
           score_2023 = round(mean_lit_r2, 1),
           change = round(change, 1),
           direction
@@ -146,7 +159,7 @@ print(cohort_change |>
 # ---- Plot ----
 plot_data <- cohort_scores |>
   filter(cohort_decade %in% cohort_change$cohort_decade, n_obs >= 50) |>
-  mutate(round_label = if_else(round == 1, "2012", "2023"))
+  mutate(round_label = unname(round_labels[as.character(round)]))
 
 p <- ggplot(
   plot_data,
@@ -166,14 +179,14 @@ p <- ggplot(
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
   geom_hline(yintercept = 225, linetype = "dashed", color = "#b91c1c", linewidth = 0.8) +
-  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = round_colors, name = NULL) +
+  scale_fill_manual(values = round_colors, name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
   ) +
   labs(
-    title = "USA: The Same Birth Cohorts Score Lower in 2023 Than in 2012",
+    title = paste0("USA: The Same Birth Cohorts Score Lower in 2023 Than in ", usa_cycle1_label),
     x = "Birth decade",
     y = "Mean literacy score",
     caption = "Dashed line = Level 1 ceiling (225)"
@@ -229,7 +242,7 @@ cat("\nUSA matched birth-decade PL1 share changes:\n")
 print(cohort_pl1_change |>
         transmute(
           cohort = paste0(cohort_decade, "s"),
-          share_2012 = scales::percent(pl1_share_r1, accuracy = 0.1),
+          share_cycle1 = scales::percent(pl1_share_r1, accuracy = 0.1),
           share_2023 = scales::percent(pl1_share_r2, accuracy = 0.1),
           change_pp = round(change * 100, 1),
           direction
@@ -238,7 +251,7 @@ print(cohort_pl1_change |>
 plot_pl1_data <- cohort_pl1 |>
   filter(cohort_decade %in% cohort_pl1_change$cohort_decade, n_obs >= 50) |>
   mutate(
-    round_label = if_else(round == 1, "2012", "2023"),
+    round_label = unname(round_labels[as.character(round)]),
     ymin = pmax(0, pl1_share - 1.96 * se),
     ymax = pmin(1, pl1_share + 1.96 * se)
   )
@@ -260,8 +273,8 @@ p_pl1 <- ggplot(
   ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
-  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = round_colors, name = NULL) +
+  scale_fill_manual(values = round_colors, name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_pl1_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
@@ -287,11 +300,11 @@ ggsave(file.path(fig_dir, "USA_cohort_pl1_trend.pdf"), p_pl1, width = 9, height 
 ggsave(file.path(fig_dir, "USA_cohort_pl1_trend.png"), p_pl1, width = 9, height = 6, dpi = 160)
 
 
-# Just 2012 Values --------------------------------------------------------
+# Just Cycle 1 Values -----------------------------------------------------
 
 p_pl1 <- 
   plot_pl1_data %>% 
-  filter(survey_year==2012) %>% 
+  filter(round == 1) %>% 
   ggplot(
     aes(
       x = cohort_decade,
@@ -308,15 +321,15 @@ p_pl1 <-
   ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.6) +
-  scale_color_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
-  scale_fill_manual(values = c("2012" = "#1f4e79", "2023" = "#d97706"), name = NULL) +
+  scale_color_manual(values = round_colors, name = NULL) +
+  scale_fill_manual(values = round_colors, name = NULL) +
   scale_x_continuous(
     breaks = sort(unique(plot_pl1_data$cohort_decade)),
     labels = function(x) paste0(x, "s")
   ) +
   scale_y_continuous(labels = label_percent(accuracy = 1)) +
   labs(
-    title = "USA: PL1-VOTS Likelihood By Birth Decade in 2012",
+    title = paste0("USA: PL1-VOTS Likelihood By Birth Decade in ", usa_cycle1_label),
     x = "(\u2190 Older)       Birth decade      (Younger \u2192)",
     y = "Share at Level 1 or below",
     caption = "PL1-VOTS = scoring at or below Level 1 in literacy (<= 225)"
@@ -375,7 +388,7 @@ cat("\nUSA matched birth-decade bachelor’s+ share changes:\n")
 print(college_share_matched |>
         transmute(
           cohort = paste0(cohort_decade, "s"),
-          share_2012 = scales::percent(college_share_r1, accuracy = 0.1),
+          share_cycle1 = scales::percent(college_share_r1, accuracy = 0.1),
           share_2023 = scales::percent(college_share_r2, accuracy = 0.1),
           change_pp = round(change_pp, 1)
         ), n = Inf)

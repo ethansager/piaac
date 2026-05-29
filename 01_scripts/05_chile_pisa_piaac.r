@@ -16,7 +16,12 @@ library(here)
 
 source(here("01_scripts/00_helpers.r"))
 
-cache_dir <- here("00_data/pisa/cache")
+pisa_dir_candidates <- c(here("0_data/pisa"), here("00_data/pisa"))
+pisa_dir <- pisa_dir_candidates[dir.exists(pisa_dir_candidates)][1]
+if (is.na(pisa_dir)) {
+  stop("Could not find PISA raw-data directory. Checked: 0_data/pisa and 00_data/pisa")
+}
+cache_dir <- file.path(pisa_dir, "cache")
 out_dir   <- here("02_output")
 fig_dir   <- here("Figures")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
@@ -65,8 +70,18 @@ pisa_rds <- file.path(out_dir, "pisa_all_countries.rds")
 
 if (file.exists(pisa_rds)) {
   message("Loading cached PISA estimates...")
-  pisa_all <- readRDS(pisa_rds)
+  pisa_all <- tryCatch(
+    readRDS(pisa_rds),
+    error = function(e) {
+      message("Existing pisa_all_countries.rds is not readable; rebuilding from PISA cache.")
+      NULL
+    }
+  )
 } else {
+  pisa_all <- NULL
+}
+
+if (is.null(pisa_all)) {
   message("Estimating PISA means (all countries, Fay BRR k=0.5)...")
 
   pisa_all <- pmap_dfr(pisa_specs, function(year, n_pvs) {
@@ -101,6 +116,7 @@ if (file.exists(pisa_rds)) {
 message("Estimating PIAAC means for Chile...")
 
 piaac_raw <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep() |>
   filter(country == "CHL") |>
   filter(if_all(all_of(c(LIT_PVS, NUM_PVS)), \(x) !is.na(x)))
 
@@ -236,6 +252,7 @@ message("\nBuilding z-score reference...")
 
 # PIAAC 2012 cross-country population means (reference denominator)
 piaac_ref_raw <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep() |>
   filter(survey_year == 2012,
          if_all(all_of(c(LIT_PVS, NUM_PVS)), \(x) !is.na(x)))
 

@@ -1,0 +1,190 @@
+---
+title: "Illiteracy Article Notes"
+subtitle: "Structure, empirical decisions, and APC scaffold"
+author:
+  - name: "[Authors TBD]"
+    affiliation: Center for Global Development
+date: "2026-05-21"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+  pdf:
+    toc: true
+bibliography: references.bib
+---
+
+## Purpose
+
+This file is the working notebook for the public-facing article. It should hold the structure, unresolved decisions, technical caveats, and bits of argument that are useful for us but too procedural for the article itself.
+
+The companion public draft is `illiteracy_article_public.qmd`.
+
+## Current Article Spine
+
+1. Open with the corrected Kozol/Howard Johnson story: low literacy is hidden, adaptive, and socially costly.
+2. Establish the distinction between old Census illiteracy and modern PIAAC low literacy proficiency: not a different act of reading, but a more demanding question about whether adults can use text to make decisions.
+3. Introduce PIAAC, define at or below Level 1, and be honest that "functionally illiterate" is our shorthand rather than OECD's term. Spell out what Level 1 means in ordinary life: short texts, lookup, forms, warnings, instructions, tables, portals.
+4. Show the international pattern using OECD's cross-cycle convention, with Cycle 2 doorstep-only cases excluded. The cleaner headline is "most overlap countries worsened," not a brittle exact count.
+5. Show public reaction using the FT comment breakdown: the issue is under-covered and lacks a settled narrative.
+6. Show the education-spending paradox using per-pupil spending, not per-resident spending.
+7. Teach the age-period-cohort problem with a simple two-age-group, two-period example.
+8. Present the evidence ladder: demographics, within-age changes, and APC-style accounting checks without leading with the word "regression."
+9. Move to the school-to-adulthood leak: skills are maintained through use, not simply acquired once.
+10. Close on credential versus skill, without apocalyptic rhetoric.
+
+## Spending Figure Decision
+
+The earlier graph used public education spending per resident:
+
+`public education spending as share of GDP x real GDP per capita`.
+
+That was useful as a broad fiscal measure, but it did not match the article text, which uses annual primary/secondary spending per pupil and then divides cumulative K-12 spending by the share of young adults above Level 1. To avoid switching units in the reader's head, the article now uses the same per-pupil spending inputs as `01_scripts/08_education_cost.r`; mechanically, the companion figure script reads `02_output/oecd_spending.csv`, which is produced by the cost script.
+
+New companion script:
+
+`01_scripts/08b_education_budget_trends.r`
+
+New outputs:
+
+`Figures/education_spending_per_pupil_article.png`
+
+`02_output/education_spending_per_pupil_article.csv`
+
+Main numbers:
+
+- United States: $7,200 per pupil in 1970, $17,800 in 2021, roughly 2.5x.
+- United Kingdom: $7,200 in 2000, $13,300 in 2021.
+- France: $7,400 in 2000, $12,000 in 2021.
+
+Important caveat: the U.S. historical values are deflated to roughly 2021 dollars using NCES/BLS, while the recent cross-country values are OECD Education at a Glance USD PPP figures. This is fine for a back-of-envelope article figure, but it should not be sold as a precise production-function estimate.
+
+## APC Explanation For Readers
+
+The reader-friendly starting point is a country with only two age groups and two periods.
+
+National low literacy can be written as:
+
+`share young x low-literacy rate among young + share old x low-literacy rate among old`.
+
+This immediately creates two channels:
+
+- Share/composition effects: the population becomes older, more immigrant, or otherwise differently composed.
+- Within-group rate effects: low literacy rises among the young, among the old, or both.
+
+The second channel then opens the age-period-cohort problem:
+
+- Age effect: people lose some measured skill as they age.
+- Cohort effect: people born later or earlier have different schooling histories and skill endowments.
+- Period effect: something about 2023 depresses performance across ages, such as assessment changes, pandemic disruption, adult reading habits, nonresponse, or technology-mediated skill decay.
+
+The key identity is:
+
+`birth cohort = survey year - age`.
+
+With two main PIAAC cycles, age, period, and cohort cannot all be separately identified without assumptions. The article should therefore avoid a triumphant "we decomposed it" tone. The APC section should be framed as an evidence ladder.
+
+## Evidence Ladder
+
+### Doorstep Interview Convention
+
+Earlier project figures that used `06_pl1_overlap_change.r` and `08_agegroup_pl1_dumbbell.r` included Cycle 2 respondents with `DOORSTEP == 1` when plausible values were present. OECD's published proficiency-level table for Cycle 2 excludes adults who were only administered the doorstep interview.
+
+Validation check, run 2026-05-23:
+
+- Including doorstep cases, the local Cycle 2 PL1 literacy shares can diverge materially from OECD for countries with many doorstep interviews. Denmark and Finland are the clearest cases.
+- Excluding `DOORSTEP == 1` from 2023 estimates makes the local country-level PL1 shares line up closely with OECD Annex Table A.3.2 (L). Mean absolute difference from official Cycle 2 literacy shares falls to roughly 0.5 percentage points, and the maximum matched difference is under 1 percentage point.
+- Denmark changes from apparent deterioration to improvement: literacy 15.4% to 13.2%; numeracy 13.9% to 12.0%.
+- Finland also improves: literacy 10.3% to 8.9%; numeracy 12.5% to 8.8%.
+- After the Austria-year fix and the U.S. combined 2012/14 baseline, the local 24-country overlap sample gives pooled literacy PL1 of 17.5% to 24.7%, and pooled numeracy PL1 of 23.8% to 26.5%.
+- In population counts, low literacy rises from roughly 115 million to 155 million adults; low numeracy rises from roughly 156 million to 166 million adults.
+- Country-count headline is 21 of 24 literacy increases. Numeracy is 14 increases and 10 decreases.
+- OECD's published Annex A.3.2 table has 27 trend rows because it includes Netherlands, Norway, and Sweden. Those three Cycle 2 raw public-use files are not in the local `0_data/` folder as of 2026-05-23. In the OECD table, the full official count is 23 of 27 literacy increases and 14 of 27 numeracy increases.
+
+Decision: for all public cross-cycle trend claims and figures, use the OECD convention and drop `DOORSTEP == 1`. `01_load_clean.r` now carries the `DOORSTEP` flag and excludes doorstep-only rows from `piaac_clean.rds`; raw-file scripts that bypass the clean RDS also call `exclude_doorstep()`. The doorstep population is substantively important, but it should be handled as a separate vulnerability note rather than mixed into the trend comparison.
+
+### Layer 1: Demographic Reweighting
+
+OECD's reweighting exercise compares Cycle 2 to Cycle 1 after matching the Cycle 1 distribution of age, immigrant background, and gender. It shows that demographics matter, but they do not make the decline disappear.
+
+Draft figure source:
+
+`presentation/Screenshot 2026-03-27 205855.png`
+
+Publication action: redraw from OECD table if possible, or cite as an OECD exhibit and keep the screenshot out of final publication design.
+
+### Layer 2: Within-Age Changes
+
+The pooled overlap sample shows low literacy rising inside every age group:
+
+- 16-24: 12.6% to 18.6%.
+- 25-34: 12.3% to 19.1%.
+- 35-44: 14.8% to 22.2%.
+- 45-54: 20.1% to 26.5%.
+- 55-65: 25.3% to 34.6%.
+
+These are the 2026-05-23 recomputed values using the OECD no-doorstep convention.
+
+This rules out the simplest aging-only story.
+
+### U.S. Official-Number Check
+
+The U.S. was the remaining mismatch after doorstep exclusion. The source is the baseline file:
+
+- OECD reports the U.S. Cycle 1 trend baseline as 2012/15.
+- The original local pipeline used `prgusap1_2012.sav`, the 2012-only file.
+- We added `0_data/prgusap1_2012_2014.sav` from the NCES combined 2012/2014 public-use file and taught the scripts to prefer it whenever present.
+- This improves the comparison but does not make it exact. Against OECD Annex A.3.2, after the fix there are no sign mismatches across the 24 locally matched countries. Only one magnitude flag above 1 percentage point remains: U.S. numeracy change is +4.7 pp locally versus +6.1 pp in OECD, a -1.3 pp difference. U.S. literacy is +8.6 pp locally versus +9.4 pp in OECD, a -0.9 pp difference.
+- The likely reason is that OECD's international combined U.S. PUF is not exactly the NCES combined public-use file. The direct OECD zip for the U.S. combined international PUF returned HTTP 403 in this environment. For exact publication replication, either obtain that file manually or use OECD's official annex values for the U.S. trend figure.
+
+### Figure 1 Comparison To OECD
+
+New validation script:
+
+`01_scripts/06b_pl1_overlap_compare_oecd.r`
+
+Outputs:
+
+`02_output/pl1_overlap_compare_oecd.csv`
+
+`02_output/pl1_overlap_compare_oecd_summary.csv`
+
+Result, comparing the 24 Figure 1 countries to OECD Annex A.3.2:
+
+- All 48 country-domain rows match OECD in sign.
+- Literacy has no country with an absolute change difference above 1 percentage point. Mean absolute difference is 0.16 pp; max absolute difference is 0.86 pp.
+- Numeracy has one country above 1 percentage point: United States, where Figure 1 gives +4.73 pp and OECD gives +6.05 pp.
+- OECD trend countries not in Figure 1 are Netherlands, Norway, and Sweden, because their Cycle 2 raw public-use files are not present locally.
+
+### Layer 3: APC Accounting Checks
+
+The APC estimates are worth including, but only as disciplined accounting checks. In the public piece, do not pitch them as a black-box regression result.
+
+What the specs mean:
+
+- Age + period: holds country and age group fixed; asks whether 2023 is lower. Estimate is roughly -7 PIAAC literacy points.
+- Age + cohort: assumes no general 2023 effect; asks whether cohort quality differs by birth decade. Useful, but period-confounded at the edges.
+- Cohort-tracked age profile: follows birth-decade cells across rounds. Descriptive, not causal, because aging and period move together.
+- PISA-instrumented: uses age-15 PISA scores as a proxy for cohort quality. After adding the PISA files to `0_data/pisa`, the PISA cache and linkage were rebuilt on 2026-05-24. Spec 4 gives a 2023 period estimate of about -7.2 literacy points, almost identical to Spec 1. However, the PISA persistence coefficient is weak after country fixed effects and age are included, so this should be treated as a robustness check rather than a stronger identification strategy.
+- Age x period: checks whether the 2023 shift differs by age group. The young are not spared; point estimates are more negative for older groups, but standard errors are wide.
+
+Bottom line for the article:
+
+The aggregate decline is not just rich countries getting older, more immigrant, or more female. There remains a broad later-period deterioration after basic demographic adjustment. The exact split among cohort replacement, adult skill decay, and 2023 survey-period complications remains uncertain.
+
+## Current Publication Checks
+
+- Redraw the FT-comments and OECD demographic-reweighting screenshots from source data before final publication, or keep them as draft figures only.
+- Recompute/verify standard errors with country-specific replicate methods, effective replicate counts, and Fay factors.
+- Decide whether the PISA-instrumented APC result belongs in the public piece, the notes, or a technical appendix. It now runs, but the instrument-strength warning should travel with it.
+- Add formal bibliography entries for OECD PIAAC 2023, NCES U.S. PIAAC 2023, Kozol, and spending sources.
+- Decide whether the headline phrase "functionally illiterate" should remain or be softened to "low literacy proficiency" in public copy.
+
+## Data Notes
+
+PIAAC estimates use the project scripts and public-use files in `01_scripts/` and `02_output/`. Low literacy means scoring at or below Level 1 in literacy, operationalized as `PVLIT_k <= 225` for each plausible value and then averaged. Population estimates use `SPFWT0` weights. Main cross-cycle estimates exclude `DOORSTEP == 1` respondents.
+
+The cost-per-literate-young-adult arithmetic follows `01_scripts/08_education_cost.r`. The new spending chart mirrors that script's spending inputs.
+
+Important caveats remain. First, standard errors should be recomputed using country-specific replicate methods, effective replicate counts, and Fay factors rather than a single generic replicate formula. Second, Cycle 2 introduced a redesigned tablet-based assessment, updated frameworks, and changes in scaling methodology; OECD and NCES advise caution in cross-cycle comparisons. Third, Cycle 2 includes doorstep interview cases for some adults unable to complete the standard assessment because of language barriers; the main analysis follows OECD's proficiency-table convention and excludes them, but they remain a substantively important coverage/vulnerability population. Fourth, PIAAC is a repeated cross-section, not a panel, so cohort tracking follows birth cohorts rather than the same individuals.

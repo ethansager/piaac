@@ -30,11 +30,11 @@ root_candidates <- c(here(), here("piaac"))
 piaac_root <- root_candidates[dir.exists(file.path(root_candidates, "01_scripts"))][1]
 if (is.na(piaac_root)) stop("Could not locate PIAAC analysis root")
 
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
+
 out_dir  <- file.path(piaac_root, "02_output")
 data_dir <- c(file.path(piaac_root, "0_data"), file.path(piaac_root, "00_data")) |>
   (\(x) x[file.exists(x)])() |> (\(x) x[1])()
-
-source(file.path(piaac_root, "01_scripts", "00_helpers.r"))
 
 # ---- OECD spending data --------------------------------------------------
 
@@ -99,15 +99,25 @@ cat("Saved: 02_output/oecd_spending.csv\n")
 # All PIAAC-derived counts use population weights (SPFWT0).
 
 load_us_round <- function(file, yr) {
-  cols <- c("SPFWT0", BRR_WTS, "AGEG10LFS", "AGEG10LFS_T", LIT_PVS)
+  cols <- c("SPFWT0", BRR_WTS, "AGEG10LFS", "AGEG10LFS_T", "DOORSTEP", LIT_PVS)
   d <- read_sav(file.path(data_dir, file), col_select = any_of(cols))
   if ("AGEG10LFS_T" %in% names(d) && !"AGEG10LFS" %in% names(d))
     d <- rename(d, AGEG10LFS = AGEG10LFS_T)
-  mutate(d, survey_year = yr, across(where(haven::is.labelled), as.numeric))
+  d |>
+    mutate(across(where(haven::is.labelled), as.numeric)) |>
+    exclude_doorstep() |>
+    mutate(survey_year = yr)
 }
 
+usa_cycle1_file <- if (file.exists(file.path(data_dir, "prgusap1_2012_2014.sav"))) {
+  "prgusap1_2012_2014.sav"
+} else {
+  "prgusap1_2012.sav"
+}
+usa_cycle1_year <- if (identical(usa_cycle1_file, "prgusap1_2012_2014.sav")) 2014L else 2012L
+
 us_files <- list(
-  list(file = "prgusap1_2012.sav", yr = 2012),
+  list(file = usa_cycle1_file, yr = usa_cycle1_year),
   list(file = "prgusap1_2017.sav", yr = 2017),
   list(file = "PRGUSAP2.sav",      yr = 2023)
 )
@@ -145,7 +155,8 @@ literacy_us <- mutate(literacy_ag1, country = "USA")
 
 # ---- PIAAC: GBR and FRA from piaac_clean.rds -----------------------------
 
-piaac <- readRDS(file.path(out_dir, "piaac_clean.rds"))
+piaac <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep()
 
 compute_literacy_ag1 <- function(data, country_code) {
   sub <- data |>
@@ -203,7 +214,7 @@ get_spending <- function(country_code, target_year) {
     pull(spend_per_pupil_usd_ppp)
 }
 
-piaac_rounds <- c(2012, 2023)
+piaac_rounds <- c(2012, usa_cycle1_year, 2023)
 
 cost_stats <- literacy_all |>
   filter(survey_year %in% piaac_rounds) |>
@@ -217,7 +228,9 @@ cost_stats <- literacy_all |>
 # (earliest PIAAC observation) with 1970 spending
 hist_rows <- purrr::map_dfr(c("USA", "GBR", "FRA"), function(ctry) {
   spend_70  <- get_spending(ctry, 1970)
-  lit_early <- literacy_all |> filter(country == ctry, survey_year == min(survey_year)) |>
+  lit_early <- literacy_all |>
+    filter(country == ctry) |>
+    slice_min(survey_year, n = 1, with_ties = FALSE) |>
     pull(literate_share)
   tibble(
     country = ctry, survey_year = 1970L,

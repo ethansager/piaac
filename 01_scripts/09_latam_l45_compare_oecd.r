@@ -26,6 +26,8 @@ if (is.na(piaac_root)) {
   stop("Could not locate the PIAAC analysis root. Checked: . and ./piaac")
 }
 
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
+
 out_dir <- file.path(piaac_root, "02_output")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -145,8 +147,9 @@ write_excel_xml <- function(data, path, sheet_name = "LATAM_L45") {
 build_country_row <- function(country_name, filename) {
   data <- read_sav(
     file.path(data_dir, filename),
-    col_select = any_of(c("SPFWT0", paste0("PVLIT", 1:10), paste0("PVNUM", 1:10)))
-  )
+    col_select = any_of(c("SPFWT0", "DOORSTEP", paste0("PVLIT", 1:10), paste0("PVNUM", 1:10)))
+  ) |>
+    exclude_doorstep()
 
   weighted_population <- sum(data$SPFWT0, na.rm = TRUE)
   lit_l45_share <- calc_weighted_share(data, "PVLIT", cutoff = 325)

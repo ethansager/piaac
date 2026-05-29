@@ -15,20 +15,27 @@ library(dplyr)
 library(purrr)
 library(here)
 
+source(here("01_scripts/00_helpers.r"))
+
 #------------------------------------------------------------------------------#
 #  Set up intital objects ----
 #------------------------------------------------------------------------------#
 
 out_dir <- here("02_output")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-data_dir <- here("00_data")
+data_dir_candidates <- c(here("0_data"), here("00_data"))
+data_dir <- data_dir_candidates[file.exists(data_dir_candidates)][1]
+if (is.na(data_dir)) {
+  stop("Could not find raw PIAAC data directory. Checked: 0_data and 00_data")
+}
 
 sav_files <- list.files(
   data_dir,
   pattern = "\\.sav$",
   ignore.case = TRUE,
   full.names = TRUE
-)
+) |>
+  prefer_us_combined_round1()
 
 #------------------------------------------------------------------------------#
 #  PIAAC country × cycle ----
@@ -38,12 +45,10 @@ sav_files <- list.files(
 # p1 files = each country's FIRST PIAAC participation (Cycle 1, three rounds):
 #   C1 Round 1 (2012): most OECD countries
 #   C1 Round 2 (2014): CHL, ECU, HUN, ISR, MEX, NZL, PER, RUS, SGP, TUR
-#                      (AUT also did R2 but AUT's p1 = R1 = 2012)
 #   C1 Round 3 (2017): GRC, KAZ, SVN
 #
 # p2 files = each country's SECOND PIAAC participation:
-#   AUT: C1 Round 2 (2014) — AUT p1 was Round 1, p2 is Round 2
-#   All others: Cycle 2 Round 1 (2023)
+#   Cycle 2 Round 1 (2023) in this public-use file release
 #   NZL p2 year set to 2023 pending confirmation (not shown in table but file exists)
 CY1_YEAR_LOOKUP <- c(
   # C1 Round 1 (2012)
@@ -59,22 +64,22 @@ CY1_YEAR_LOOKUP <- c(
 )
 
 CY2_YEAR_LOOKUP <- c(
-  AUT = 2014L,   # AUT p2 = its C1 Round 2 participation
-  # All others: Cycle 2 Round 1 (2023)
+  AUT=2023L,
   BEL=2023L, CAN=2023L, CHL=2023L, CZE=2023L, DEU=2023L, DNK=2023L,
   ESP=2023L, EST=2023L, FIN=2023L, FRA=2023L, GBR=2023L, HUN=2023L,
   IRL=2023L, ISR=2023L, ITA=2023L, JPN=2023L, KOR=2023L, LTU=2023L,
-  NZL=2023L, POL=2023L, SGP=2023L, SVK=2023L, USA=2023L
+  NLD=2023L, NOR=2023L, NZL=2023L, POL=2023L, SGP=2023L, SVK=2023L,
+  SWE=2023L, USA=2023L
 )
 
 # ---- Round override for countries with 3+ participations ----
-# USA has three survey rounds. We assign round numbers so that round 1 (2012)
+# USA has three survey rounds. We assign round numbers so that round 1 (2012/14)
 # and round 2 (2023) align with the Cycle 1 / Cycle 2 structure used by all
 # other countries, enabling a clean cohort comparison. The 2017 data gets
 # round 3 and is available as an intermediate point.
-# File naming: non-standard _YYYY suffix (prgusap1_2012.sav, prgusap1_2017.sav)
+# File naming: non-standard _YYYY suffix (prgusap1_2012_2014.sav, prgusap1_2017.sav)
 ROUND_OVERRIDE <- list(
-  USA = c(`2012` = 1L, `2023` = 2L, `2017` = 3L)
+  USA = c(`2012` = 1L, `2014` = 1L, `2023` = 2L, `2017` = 3L)
 )
 
 # ---- Parse filename → country and round ----
@@ -130,12 +135,13 @@ BRR_WTS   <- paste0("SPFWT", 1:80)
 #   PARED          = parental education (highest of two parents)
 #   IMGEN          = immigration generation (1st, 2nd, native)
 #   EDCAT8         = 8-category education (finer than EDCAT7)
+#   DOORSTEP       = Cycle 2 doorstep-only interview flag; exclude from main analysis
 DEMO_VARS <- c("GENDER_R", "C_D05", "I_Q08", "J_Q01_C", "J_Q03a",
                "NATIVESPEAKER", "MONTHLYINCPR", "PARED", "IMGEN",
                "EDCAT8", "EDCAT8_TC1")
 KEY_VARS  <- c(LIT_PVS, NUM_PVS, BRR_WTS,
                "AGE_R", "AGEG10LFS", "AGEG10LFS_T", "EDCAT7", "EDCAT7_TC1", "SPFWT0",
-               DEMO_VARS)
+               "DOORSTEP", DEMO_VARS)
 
 # ---- Load one file ----
 load_one_file <- function(filepath) {
@@ -245,6 +251,20 @@ piaac <- bind_rows(compact(all_data))
 # Convert haven-labelled columns to plain numeric
 piaac <- mutate(piaac, across(where(haven::is.labelled), as.numeric))
 
+# OECD proficiency-level tables exclude Cycle 2 respondents who only completed
+# the doorstep interview. Keep the flag in raw files, but make piaac_clean.rds
+# the OECD-comparable analysis sample used by downstream scripts.
+if ("DOORSTEP" %in% names(piaac)) {
+  doorstep_n <- sum(piaac$DOORSTEP == 1, na.rm = TRUE)
+  doorstep_wt <- sum(piaac$SPFWT0[piaac$DOORSTEP == 1], na.rm = TRUE)
+  piaac <- filter(piaac, is.na(DOORSTEP) | DOORSTEP != 1)
+  cat(sprintf(
+    "Excluded %s doorstep-only rows from piaac_clean.rds (weighted N = %.0f).\n",
+    format(doorstep_n, big.mark = ","),
+    doorstep_wt
+  ))
+}
+
 # ---- Summary ----
 cat(sprintf(
   "\nCombined dataset: %s rows, %d countries, %d rounds\n",
@@ -264,7 +284,8 @@ cat("\nVariable completeness:\n")
 vars_to_check <- c("pvlit_mean", "pvnum_mean", "PVLIT1", "PVNUM1",
                    "SPFWT0", "SPFWT1", "AGE_R", "AGEG10LFS", "EDCAT7",
                    "GENDER_R", "C_D05", "I_Q08", "J_Q01_C", "J_Q03a",
-                   "NATIVESPEAKER", "MONTHLYINCPR", "PARED", "IMGEN", "EDCAT8")
+                   "NATIVESPEAKER", "MONTHLYINCPR", "PARED", "IMGEN", "EDCAT8",
+                   "DOORSTEP")
 for (v in vars_to_check) {
   if (v %in% names(piaac)) {
     pct_missing <- mean(is.na(piaac[[v]])) * 100

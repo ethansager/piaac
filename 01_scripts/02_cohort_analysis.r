@@ -22,7 +22,8 @@ fig_dir <- here("Figures")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ---- Load ----
-piaac <- readRDS(file.path(out_dir, "piaac_clean.rds"))
+piaac <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep()
 cat(sprintf("Loaded: %s rows\n", format(nrow(piaac), big.mark = ",")))
 
 # ---- Birth cohort decades ----

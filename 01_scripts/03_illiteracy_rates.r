@@ -27,13 +27,14 @@ fig_dir <- here("Figures")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ---- Load ----
-piaac <- readRDS(file.path(out_dir, "piaac_clean.rds"))
+piaac <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep()
 
-# ---- Filter: round 1 (more countries), valid observations ----
+# ---- Filter: Cycle 2 / 2023, valid observations ----
 r1 <- filter(piaac, round == 2, !is.na(PVLIT1), !is.na(SPFWT0), SPFWT0 > 0)
 
 cat(sprintf(
-  "Round 1: %s obs across %d countries\n",
+  "Cycle 2: %s obs across %d countries\n",
   format(nrow(r1), big.mark = ","),
   n_distinct(r1$country)
 ))
@@ -69,7 +70,7 @@ print(illiteracy_rates |> arrange(desc(illiteracy_rate)) |>
 
 # ---- Sanity check vs email benchmarks ----
 # From emails.txt: US ~28%, DEU ~22.5%, ESP ~31%, CHL ~53.4%, FIN/SWE ~12%
-# Note: USA not in round 1; DEU/ESP/CHL/FIN/SWE should match
+# Note: SWE is not in Cycle 2; the remaining countries should match.
 benchmarks <- tibble::tibble(
   country   = c("DEU", "ESP", "CHL", "FIN", "SWE"),
   benchmark = c(22.5, 31.0, 53.4, 12.0, 12.0)
@@ -122,16 +123,16 @@ make_illiteracy_plot <- function(plot_df, title_extra = "", country_order = NULL
       labels = scales::label_number(suffix = "%")
     ) +
     labs(
-      title = paste0("Functional Illiteracy Across PIAAC Countries: cy1", title_extra),
+      title = paste0("Functional Illiteracy Across PIAAC Countries: Cycle 2", title_extra),
       subtitle = paste0(
         "Share of adults scoring \u2264225 (Level 1 ceiling). ",
         "Error bars = ±1.96 SE (PV+BRR).\n",
-        "Gold = highlighted countries (USA not in round 1)."
+        "Gold = highlighted countries."
       ),
       x = NULL,
       y = "Functional illiteracy rate",
       caption = paste0(
-        "Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
+        "Source: PIAAC Cycle 2 PUF. Per-PV binary indicators averaged with BRR SEs ",
         "(Rubin's rules), SPFWT0 weights.\n",
         "\u2264225 = at or below Level 1 (functionally illiterate)."
       )
@@ -197,7 +198,7 @@ p_gender <- illiteracy_gender |>
   ) +
   scale_y_continuous(labels = scales::label_number(suffix = "%")) +
   labs(
-    title = "Functional Illiteracy by Gender: cy1",
+    title = "Functional Illiteracy by Gender: Cycle 2",
     subtitle = paste0(
       "Share of adults scoring \u2264225 (Level 1 ceiling). ",
       "Error bars = \u00b11.96 SE (PV+BRR)."
@@ -205,7 +206,7 @@ p_gender <- illiteracy_gender |>
     x = NULL,
     y = "Functional illiteracy rate",
     caption = paste0(
-      "Source: PIAAC cy1 PUF. Per-PV binary indicators averaged with BRR SEs ",
+      "Source: PIAAC Cycle 2 PUF. Per-PV binary indicators averaged with BRR SEs ",
       "(Rubin\u2019s rules), SPFWT0 weights."
     )
   ) +

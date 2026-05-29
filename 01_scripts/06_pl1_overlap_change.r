@@ -29,6 +29,8 @@ if (is.na(piaac_root)) {
   stop("Could not locate the PIAAC analysis root. Checked: . and ./piaac")
 }
 
+source(file.path(piaac_root, "01_scripts/00_helpers.r"))
+
 out_dir <- file.path(piaac_root, "02_output")
 fig_dir <- file.path(piaac_root, "Figures")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -55,15 +57,16 @@ cy1_year_lookup <- c(
 )
 
 cy2_year_lookup <- c(
-  AUT = 2014L,
+  AUT = 2023L,
   BEL = 2023L, CAN = 2023L, CHL = 2023L, CZE = 2023L, DEU = 2023L, DNK = 2023L,
   ESP = 2023L, EST = 2023L, FIN = 2023L, FRA = 2023L, GBR = 2023L, HUN = 2023L,
   IRL = 2023L, ISR = 2023L, ITA = 2023L, JPN = 2023L, KOR = 2023L, LTU = 2023L,
-  NZL = 2023L, POL = 2023L, SGP = 2023L, SVK = 2023L, USA = 2023L
+  NLD = 2023L, NOR = 2023L, NZL = 2023L, POL = 2023L, SGP = 2023L, SVK = 2023L,
+  SWE = 2023L, USA = 2023L
 )
 
 round_override <- list(
-  USA = c(`2012` = 1L, `2023` = 2L, `2017` = 3L)
+  USA = c(`2012` = 1L, `2014` = 1L, `2023` = 2L, `2017` = 3L)
 )
 
 country_labels <- c(
@@ -72,7 +75,8 @@ country_labels <- c(
   EST = "Estonia", FIN = "Finland", FRA = "France", GBR = "United Kingdom",
   HUN = "Hungary", IRL = "Ireland", ISR = "Israel", ITA = "Italy",
   JPN = "Japan", KOR = "Korea", LTU = "Lithuania", NZL = "New Zealand",
-  POL = "Poland", SGP = "Singapore", SVK = "Slovakia", USA = "United States"
+  NLD = "Netherlands", NOR = "Norway", POL = "Poland", SGP = "Singapore",
+  SVK = "Slovakia", SWE = "Sweden", USA = "United States"
 )
 
 # ---- Parse file metadata ----
@@ -97,7 +101,8 @@ parse_filename <- function(filepath) {
   }
 
   round_num <- if (country %in% names(round_override)) {
-    unname(round_override[[country]][as.character(survey_year)])
+    override <- unname(round_override[[country]][as.character(survey_year)])
+    ifelse(is.na(override), raw_round, override)
   } else {
     raw_round
   }
@@ -122,8 +127,9 @@ pl1_rate <- function(data, pv_prefix, wt) {
 calc_country_round <- function(path, country, round, survey_year) {
   d <- read_sav(
     path,
-    col_select = any_of(c("SPFWT0", paste0("PVLIT", 1:10), paste0("PVNUM", 1:10)))
-  )
+    col_select = any_of(c("SPFWT0", "DOORSTEP", paste0("PVLIT", 1:10), paste0("PVNUM", 1:10)))
+  ) |>
+    exclude_doorstep()
 
   wt <- d$SPFWT0
   pop <- sum(wt, na.rm = TRUE)
@@ -149,7 +155,8 @@ all_files <- list.files(
   pattern = "\\.sav$",
   ignore.case = TRUE,
   full.names = TRUE
-)
+) |>
+  prefer_us_combined_round1()
 
 meta <- bind_rows(lapply(all_files, parse_filename))
 
@@ -307,8 +314,6 @@ p <- ggplot(plot_df, aes(x = country_name, y = change_pp, fill = domain)) +
   ) +
   scale_y_continuous(labels = label_number(suffix = " pp")) +
   labs(
-    title = "Change in Adults at or Below Level 1: Cycle 1 vs Cycle 2",
-    subtitle = "Countries with an earlier PIAAC participation and a 2023 participation.",
     x = NULL,
     y = "Increase in share at or below Level 1 \u2192",
     caption = paste0(

@@ -78,6 +78,7 @@ AGE_MID    <- c("1" = 20, "2" = 30, "3" = 40, "4" = 50, "5" = 60)
 
 cat("Loading data...\n")
 piaac <- readRDS(file.path(out_dir, "piaac_clean.rds")) |>
+  exclude_doorstep() |>
   filter(!is.na(AGEG10LFS), !is.na(SPFWT0), SPFWT0 > 0, !is.na(PVLIT1)) |>
   mutate(
     age_band    = as.character(AGEG10LFS),
@@ -285,42 +286,61 @@ saveRDS(spec3, file.path(out_dir, "apc_spec3.rds"))
 
 cat("\n--- Spec 4: PISA-instrumented ---\n")
 
-pisa_piaac <- readRDS(file.path(out_dir, "cohort_pisa_piaac.rds")) |>
-  filter(subject == "Literacy") |>
-  mutate(
-    period_2023 = as.integer(piaac_year == 2023),
-    wt_iv       = 1 / piaac_se^2   # correct inverse-variance weight
-  ) |>
-  filter(!is.na(pisa_mean), !is.na(piaac_mean), n_piaac >= 50)
-
-cat(sprintf("Spec 4 cells: %d (countries: %d)\n",
-            nrow(pisa_piaac), n_distinct(pisa_piaac$country)))
-
-spec4 <- run_wls(
-  piaac_mean ~ pisa_mean + age_at_piaac + period_2023 + country,
-  pisa_piaac,
-  weight_col = "wt_iv"
+pisa_piaac_raw <- tryCatch(
+  readRDS(file.path(out_dir, "cohort_pisa_piaac.rds")),
+  error = function(e) {
+    warning(sprintf(
+      "Skipping Spec 4: could not read cohort_pisa_piaac.rds (%s)",
+      e$message
+    ))
+    NULL
+  }
 )
 
-period_est_s4 <- spec4 |> filter(term == "period_2023")
-pisa_coef     <- spec4 |> filter(term == "pisa_mean")
+spec4 <- NULL
+period_est_s4 <- tibble()
+pisa_coef <- tibble(t_stat = NA_real_)
 
-cat(sprintf("PISA persistence: %.3f (SE %.3f, t=%.2f)\n",
-            pisa_coef$estimate, pisa_coef$se, pisa_coef$t_stat))
+if (!is.null(pisa_piaac_raw)) {
+  pisa_piaac <- pisa_piaac_raw |>
+    filter(subject == "Literacy") |>
+    mutate(
+      period_2023 = as.integer(piaac_year == 2023),
+      wt_iv       = 1 / piaac_se^2   # correct inverse-variance weight
+    ) |>
+    filter(!is.na(pisa_mean), !is.na(piaac_mean), n_piaac >= 50)
 
-# Instrument strength check
-if (abs(pisa_coef$t_stat) < 3.2) {
-  cat("  [WARNING: PISA instrument is WEAK (|t| < 3.2 after country FE + age)]\n")
-  cat("  [Country FE likely absorbs most cross-country PISA-PIAAC correlation]\n")
-  cat("  [Spec 4 period estimate offers limited credibility advantage over Spec 1]\n")
+  cat(sprintf("Spec 4 cells: %d (countries: %d)\n",
+              nrow(pisa_piaac), n_distinct(pisa_piaac$country)))
+
+  spec4 <- run_wls(
+    piaac_mean ~ pisa_mean + age_at_piaac + period_2023 + country,
+    pisa_piaac,
+    weight_col = "wt_iv"
+  )
+
+  period_est_s4 <- spec4 |> filter(term == "period_2023")
+  pisa_coef     <- spec4 |> filter(term == "pisa_mean")
+
+  cat(sprintf("PISA persistence: %.3f (SE %.3f, t=%.2f)\n",
+              pisa_coef$estimate, pisa_coef$se, pisa_coef$t_stat))
+
+  # Instrument strength check
+  if (abs(pisa_coef$t_stat) < 3.2) {
+    cat("  [WARNING: PISA instrument is WEAK (|t| < 3.2 after country FE + age)]\n")
+    cat("  [Country FE likely absorbs most cross-country PISA-PIAAC correlation]\n")
+    cat("  [Spec 4 period estimate offers limited credibility advantage over Spec 1]\n")
+  } else {
+    cat("  [Instrument strength OK: |t| >= 3.2]\n")
+  }
+
+  cat(sprintf("Period (2023) effect: %.1f pts (SE %.1f, p=%.3f)\n",
+              period_est_s4$estimate, period_est_s4$se, period_est_s4$p_value))
+
+  saveRDS(spec4, file.path(out_dir, "apc_spec4.rds"))
 } else {
-  cat("  [Instrument strength OK: |t| >= 3.2]\n")
+  cat("Spec 4 skipped; continuing with Specs 5 and descriptive figures.\n")
 }
-
-cat(sprintf("Period (2023) effect: %.1f pts (SE %.1f, p=%.3f)\n",
-            period_est_s4$estimate, period_est_s4$se, period_est_s4$p_value))
-
-saveRDS(spec4, file.path(out_dir, "apc_spec4.rds"))
 
 # ---- Spec 5: Age x Period interaction ---------------------------------------
 # Does the 2023 period effect differ by age group?
@@ -383,7 +403,7 @@ period_summary <- bind_rows(
 cat(sprintf("Baseline mean literacy (cy1): %.1f pts\n\n", baseline_score))
 print(period_summary)
 
-if (abs(pisa_coef$t_stat) < 3.2) {
+if (nrow(period_est_s4) > 0 && abs(pisa_coef$t_stat) < 3.2) {
   cat("\n[NOTE: Spec 4 estimate not more credible than Spec 1 due to weak PISA instrument]\n")
 }
 
@@ -470,7 +490,11 @@ p_period <- ggplot(period_summary,
   scale_colour_manual(values = SPEC_COLOURS, guide = "none") +
   labs(
     title    = "Estimated 2023 period effect on literacy",
-    subtitle = "Negative = 2023 worse than cy1 | Spec 4 credibility depends on instrument strength",
+    subtitle = if (nrow(period_est_s4) > 0) {
+      "Negative = 2023 worse than cy1 | Spec 4 credibility depends on instrument strength"
+    } else {
+      "Negative = 2023 worse than cy1 | PISA-instrumented spec skipped: upstream RDS unavailable"
+    },
     x        = NULL,
     y        = "Points (PIAAC literacy scale)"
   ) +
@@ -537,7 +561,7 @@ ggsave(file.path(fig_dir, "apc_age_period.png"), p_raw, width = 10, height = 6, 
 cat("\n=== DONE ===\n")
 cat("Outputs saved to:\n")
 cat("  02_output/apc_cells.rds\n")
-cat("  02_output/apc_spec1.rds through apc_spec5.rds\n")
+cat("  02_output/apc_spec1.rds through apc_spec5.rds (spec4 only when upstream PISA RDS is available)\n")
 cat("  02_output/apc_period_summary.rds\n")
 cat("  Figures/apc_age_gradient, apc_cohort_gradient, apc_period_effect\n")
 cat("  Figures/apc_period_by_age, apc_age_period\n")

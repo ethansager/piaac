@@ -19,6 +19,40 @@ LIT_PVS <- paste0("PVLIT", 1:10)
 NUM_PVS <- paste0("PVNUM", 1:10)
 BRR_WTS <- paste0("SPFWT", 1:80)
 
+# ---- exclude_doorstep ----
+# OECD proficiency-level tables exclude Cycle 2 respondents who only completed
+# the doorstep interview. Cycle 1 files do not have this variable, so this is a
+# no-op for earlier rounds and for datasets that have already been filtered.
+exclude_doorstep <- function(data, doorstep_var = "DOORSTEP") {
+  if (!doorstep_var %in% names(data)) {
+    return(data)
+  }
+
+  data |>
+    filter(is.na(.data[[doorstep_var]]) | as.numeric(.data[[doorstep_var]]) != 1)
+}
+
+# ---- prefer_us_combined_round1 ----
+# OECD trend tables treat the first U.S. PIAAC cycle as the combined 2012/2014
+# sample. When that file is available locally, use it instead of the 2012-only
+# file so the project trend estimates move toward the official OECD baseline.
+prefer_us_combined_round1 <- function(files, verbose = TRUE) {
+  combined_pattern <- "prgusap1_2012_2014[.]sav$"
+  old_pattern <- "prgusap1_2012[.]sav$"
+
+  has_combined <- any(grepl(combined_pattern, basename(files), ignore.case = TRUE))
+  has_old <- any(grepl(old_pattern, basename(files), ignore.case = TRUE))
+
+  if (has_combined && has_old) {
+    files <- files[!grepl(old_pattern, basename(files), ignore.case = TRUE)]
+    if (isTRUE(verbose)) {
+      message("Using prgusap1_2012_2014.sav for U.S. Cycle 1; excluding prgusap1_2012.sav.")
+    }
+  }
+
+  files
+}
+
 # ---- pv_group_mean ----
 # Compute group means with proper PV+BRR variance using Rubin's rules.
 #
